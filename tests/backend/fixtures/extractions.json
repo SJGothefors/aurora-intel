@@ -1,0 +1,59 @@
+[
+  {
+    "reports": [{
+      "stunden": { "raw": "010632B AUG 26", "iso_utc": "2026-08-01T04:32:00.000Z", "uncertain": false },
+      "stallet": { "raw": "33VWE 12345 67890", "mgrs": "33VWE 12345 67890", "lat": null, "lon": null, "place_name": null },
+      "styrkan": { "raw": "3", "count_min": 3, "count_max": 3 },
+      "slaget": "Stridsvagn, okänd typ",
+      "sysselsattningen": "Framryckning norrut längs väg 97",
+      "symbolen": "Vit triangel på tornets sida",
+      "sagesmannen": "OP KILO / sgt Karlsson",
+      "begrepp": ["STRIDSFORDON"],
+      "position_missing": false,
+      "fields_uncertain": [],
+      "summary_sv": "Tre stridsvagnar framrycker norrut."
+    }],
+    "reason": null
+  },
+  {
+    "reports": [{
+      "stunden": { "raw": "ca 2130 igår kväll", "iso_utc": "2026-07-31T19:30:00.000Z", "uncertain": true },
+      "stallet": { "raw": "hamnområdet i Luleå", "mgrs": null, "lat": null, "lon": null, "place_name": "Luleå hamn" },
+      "styrkan": { "raw": "tre mindre drönare", "count_min": 3, "count_max": 3 },
+      "slaget": "mindre drönare",
+      "sysselsattningen": "flög i formation mot sydost",
+      "symbolen": "inga ljus",
+      "sagesmannen": "hamnvakt Nilsson",
+      "begrepp": ["UAS/DRÖNARE", "KRITISK INFRASTRUKTUR"],
+      "position_missing": true,
+      "fields_uncertain": ["stunden"],
+      "summary_sv": "Tre drönare observerades över Luleå hamn."
+    }],
+    "reason": null
+  },
+  {
+    "reports": [
+      {
+        "stunden": { "raw": "312145B JUL 26", "iso_utc": "2026-07-31T19:45:00.000Z", "uncertain": false },
+        "stallet": { "raw": "Tofta skjutfält södra infarten", "mgrs": null, "lat": null, "lon": null, "place_name": "Tofta skjutfält" },
+        "styrkan": { "raw": "2 pers", "count_min": 2, "count_max": 2 },
+        "slaget": "civil personbil", "sysselsattningen": "fotograferade grinden", "symbolen": null,
+        "sagesmannen": "vaktpost", "begrepp": ["SPANING/REKOGNOSERING"], "position_missing": true,
+        "fields_uncertain": ["stallet"], "summary_sv": "Två personer fotograferade grinden."
+      },
+      {
+        "stunden": { "raw": "Samma natt ca 0200", "iso_utc": "2026-08-01T00:00:00.000Z", "uncertain": true },
+        "stallet": { "raw": "V om Visby", "mgrs": null, "lat": null, "lon": null, "place_name": "väster om Visby" },
+        "styrkan": { "raw": null, "count_min": null, "count_max": null },
+        "slaget": "GPS-störning", "sysselsattningen": "varade ca 20 min", "symbolen": null,
+        "sagesmannen": "JRCC-logg", "begrepp": ["SIGNALSTÖRNING/GNSS"], "position_missing": true,
+        "fields_uncertain": ["stallet", "stunden"], "summary_sv": "GPS-störningar väster om Visby."
+      }
+    ],
+    "reason": null
+  },
+  {
+    "reports": [],
+    "reason": "Texten är en fråga och inte en 7S-rapport."
+  }
+]

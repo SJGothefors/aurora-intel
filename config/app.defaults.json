@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "appVersion": "1.0.0",
+  "bindAddress": "127.0.0.1",
+  "appPort": 8474,
+  "llmPort": 8475,
+  "modelPath": "llm/models/mistral-7b-instruct-v0.3.Q4_K_M.gguf",
+  "lang": "sv",
+  "theme": "dark",
+  "density": "compact",
+  "accent": "#F0568C",
+  "operatorName": "",
+  "bannerText": "EJ SEKRETESSKLASSAT – ÖVNING",
+  "likelihoodScale": [
+    "mycket osannolikt",
+    "osannolikt",
+    "möjligt",
+    "sannolikt",
+    "mycket sannolikt"
+  ],
+  "backupIntervalMin": 30,
+  "backupRetention": 20,
+  "spaningsfragaTrigger": 3,
+  "llm": {
+    "contextSize": 8192,
+    "extractionTemperature": 0.1,
+    "generationTemperature": 0.5,
+    "seed": 4242,
+    "knowledgeTokenBudget": 1500,
+    "candidateCaseLimit": 40
+  },
+  "map": {
+    "minZoom": 4,
+    "maxZoom": 11,
+    "bounds": [[53, 4], [71.5, 33]]
+  }
+}
