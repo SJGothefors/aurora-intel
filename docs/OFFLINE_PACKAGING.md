@@ -7,6 +7,16 @@ Aurora has two deliberately separate stages:
 
 The source checkout is **not** an offline release. In particular, this repository does not contain a fake `llama-server`, portable Node archive, or multi-gigabyte model. A missing payload must produce a bilingual error, not degraded "success".
 
+## Three-step release table
+
+| Step | macOS | Windows |
+|---|---|---|
+| **1. Create/export on the trusted connected computer** | Run `./scripts/prepare_release.sh` | Run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\prepare_release.ps1` |
+| **2. Copy, unpack and build/package up on the offline computer** | Copy the release ZIP locally, unpack it, then double-click `build.command` | Copy the release ZIP locally, choose **Extract All**, then double-click `build.bat` |
+| **3. Start on the offline computer** | Double-click `start.command` | Double-click `start.bat` |
+
+Wait for `OK` after step 2 before starting. The trusted connected computer creates the complete signed/checksummed package; the offline computer never downloads missing parts.
+
 ## Pinned payload
 
 `config/versions.lock` is a pipe-delimited, reviewable lock manifest (`id|platform|kind|filename|url|sha256|destination`). Current release inputs are:

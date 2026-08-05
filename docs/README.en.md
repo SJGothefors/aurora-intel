@@ -6,6 +6,14 @@ AI results are drafts. An officer must verify every field, assessment, and colle
 
 ## USB workflow on a disconnected computer
 
+| Step | macOS | Windows |
+|---|---|---|
+| **1. Trusted connected computer: create/export** | Run `./scripts/prepare_release.sh` | Run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\prepare_release.ps1` |
+| **2. Offline computer: unpack and build/package up** | Copy and unzip locally; double-click `build.command` | Copy locally, choose **Extract All**; double-click `build.bat` |
+| **3. Offline computer: start** | Double-click `start.command` | Double-click `start.bat` |
+
+Wait for `OK` after step 2. Then use the Start file in step 3.
+
 Use the trusted internal `aurora-intel-vX.Y.Z-offline.zip`. A normal Git source ZIP does not contain the multi-gigabyte model and cannot pass the offline build. The model and ZIP exceed FAT32's file limit, so USB media needs an approved large-file filesystem (ordinarily exFAT for Mac/Windows) and extraction must support ZIP64. Verify the release digest/signature and trusted-key fingerprint through the organization's separate approved channel; files delivered together cannot authenticate their own sender.
 
 ### macOS 13+
@@ -61,7 +69,7 @@ The table and map share the same filtered selection. Search includes the raw rep
 
 Row selection highlights the corresponding marker and marker clicks open cases. The local map is schematic: do not use it for navigation, boundary adjudication, operationally precise distance, or targeting. Cursor output shows MGRS and WGS84 together.
 
-APP-6 affiliation comes from the user-reviewed actor value: Unknown, Suspected foreign, Civilian, or Friendly. Symbol appearance does not itself prove identity or intent.
+Map markers use only the user-reviewed actor colour: yellow Unknown, red Suspected foreign, green Civilian, or blue Friendly. The controlled vocabulary term is shown beside the colour box. Colour does not itself prove identity or intent.
 
 ## Collection questions, Q&A, and assessments
 

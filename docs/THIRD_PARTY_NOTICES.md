@@ -10,7 +10,6 @@ Aurora Intel redistributes or builds with the components below. Exact npm versio
 | React / React DOM | User interface | MIT | Meta Open Source |
 | TanStack React Table / React Virtual | Ledger table and virtualization | MIT | TanStack |
 | Leaflet | Offline vector map | BSD-2-Clause | Leaflet contributors |
-| milsymbol | APP-6/MIL-STD-style symbol rendering | MIT | milsymbol contributors |
 | mgrs | Offline MGRS⇄WGS84 conversion | MIT | proj4js contributors |
 | i18next / react-i18next | Swedish/English localization | MIT | i18next contributors |
 | SheetJS Community Edition 0.20.3 | XLSX import/export, vendored as `vendor/xlsx-0.20.3.tgz` | Apache-2.0 | SheetJS LLC / contributors |
@@ -18,7 +17,7 @@ Aurora Intel redistributes or builds with the components below. Exact npm versio
 | TypeScript | Build tooling only | Apache-2.0 | Microsoft |
 | IBM Plex Sans / IBM Plex Mono | Bundled offline UI fonts | SIL Open Font License 1.1 | IBM; binaries distributed by Google Fonts |
 | Saira Condensed | Bundled offline display font | SIL Open Font License 1.1 | Saira project authors; binary distributed by Google Fonts |
-| Natural Earth vector v5.1.2, 1:10m | Countries, coastline, borders, lakes, and populated places for the clipped offline map | Public domain | Natural Earth contributors; see `assets/map/LICENSE.md` |
+| Natural Earth vector v5.1.2, 1:10m | Countries, coastline, borders, major roads, rivers, lakes, and populated places for the clipped offline map | Public domain | Natural Earth contributors; see `assets/map/LICENSE.md` |
 
 The standalone default-model payload is accompanied by the full applicable text at `assets/model/Mistral-7B-Instruct-v0.3-LICENSE.txt` and the exact conversion provenance/digest at `assets/model/README.md`. The portable Node and llama.cpp archives are rejected during preparation if their own embedded license inventory is absent.
 

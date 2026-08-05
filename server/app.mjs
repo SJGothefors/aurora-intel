@@ -272,7 +272,9 @@ export function createAuroraApp(options = {}) {
   const db = options.db ?? openDatabase(paths);
   const llm = options.llm ?? new LlamaClient({ port: config.llmPort, model: config.modelPath ? path.basename(config.modelPath) : undefined, logsDir: paths.logsDir });
   const service = options.aiService ?? new AIService({
-    db, llm, prompts: new PromptStore(paths.docsDir), knowledge: new KnowledgeSelector(paths.knowledgeDir), config,
+    db, llm, prompts: new PromptStore(paths.docsDir),
+    knowledge: new KnowledgeSelector(paths.knowledgeDir, { maxChars: Math.max(1000, Number(config.llm?.knowledgeTokenBudget) * 4 || 3600) }),
+    config,
   });
   const jobs = options.jobs ?? new AIJobQueue({ db, service, questionThreshold: config.spaningsfragaTrigger, debounceMs: options.aiDebounceMs });
   const imports = new Map();

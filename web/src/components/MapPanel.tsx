@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import L, { type LatLngBoundsExpression } from 'leaflet';
-import milsymbol from 'milsymbol';
 import { useTranslation } from 'react-i18next';
-import type { AskAnswer, IntelCase, VocabularyTerm } from '../types';
-import { formatCoordinate, isFiniteCoordinate, sidcForActor, toMgrs } from '../utils';
+import type { AskAnswer, IntelCase, Settings } from '../types';
+import { formatCoordinate, isFiniteCoordinate, toMgrs } from '../utils';
 
 const REGION_BOUNDS: LatLngBoundsExpression = [
   [52.8, 3.4],
@@ -12,7 +11,7 @@ const REGION_BOUNDS: LatLngBoundsExpression = [
 
 interface MapPanelProps {
   cases: IntelCase[];
-  vocabulary: VocabularyTerm[];
+  theme: Settings['theme'];
   selectedId: IntelCase['id'] | null;
   hoveredId: IntelCase['id'] | null;
   citedIds: Array<IntelCase['id']>;
@@ -30,29 +29,17 @@ interface Cluster {
   cases: IntelCase[];
 }
 
-function actorAffiliation(actor: IntelCase['aktor']): string {
-  return actor === 'Egen' ? 'F' : actor === 'Misstänkt främmande' ? 'H' : actor === 'Civil' ? 'N' : 'U';
+function statusClass(status: IntelCase['status']): string {
+  return status === 'Ny' ? 'new' : status === 'Under bearbetning' ? 'progress' : status === 'Uppföljning' ? 'followup' : 'closed';
 }
 
-function symbolIcon(item: IntelCase, terms: VocabularyTerm[], highlighted: boolean): L.DivIcon {
-  const term = terms.find((candidate) => item.begrepp.includes(candidate.name_sv));
-  try {
-    const symbol = new milsymbol.Symbol(sidcForActor(term?.sidc, item.aktor), {
-      size: highlighted ? 34 : 29,
-      uniqueDesignation: String(item.lopnr),
-    });
-    const canvas = symbol.asCanvas();
-    const uri = canvas.toDataURL('image/png');
-    return L.divIcon({
-      className: `mil-marker${highlighted ? ' is-highlighted' : ''}`,
-      html: `<img src="${uri}" width="${canvas.width}" height="${canvas.height}" alt="" />`,
-      iconSize: [canvas.width, canvas.height],
-      iconAnchor: [canvas.width / 2, canvas.height / 2],
-    });
-  } catch {
-    const className = `fallback-marker affiliation-${actorAffiliation(item.aktor).toLowerCase()}${highlighted ? ' is-highlighted' : ''}`;
-    return L.divIcon({ className, html: `<span>${item.lopnr}</span>`, iconSize: [30, 30], iconAnchor: [15, 15] });
-  }
+function colorIcon(item: IntelCase, typeLabel: string, statusLabel: string, highlighted: boolean): L.DivIcon {
+  const affiliation = item.aktor === 'Egen' ? 'friend' : item.aktor === 'Misstänkt främmande' ? 'hostile' : item.aktor === 'Civil' ? 'civil' : 'unknown';
+  return L.divIcon({
+    className: `color-marker marker-${affiliation}${highlighted ? ' is-highlighted' : ''}`,
+    html: `<span class="marker-actor" aria-hidden="true"></span><span class="marker-copy"><b>${escapeMarkup(typeLabel)}</b><em class="marker-status marker-status-${statusClass(item.status)}">${escapeMarkup(statusLabel)}</em></span>`,
+    iconSize: [170, 34], iconAnchor: [8, 17],
+  });
 }
 
 function createClusters(cases: IntelCase[], zoom: number): Cluster[] {
@@ -79,7 +66,7 @@ function useGeoData() {
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/assets/map/nordic-baltic.geojson', { signal: controller.signal })
+    fetch('/assets/map/nordic-baltic.geojson', { signal: controller.signal, cache: 'no-store' })
       .then((response) => {
         if (!response.ok) throw new Error(String(response.status));
         return response.json() as Promise<GeoJSON.GeoJsonObject>;
@@ -93,11 +80,11 @@ function useGeoData() {
   return { data, failed };
 }
 
-function renderTooltip(item: IntelCase, emptyLabel: string): string {
+function renderTooltip(item: IntelCase, vocabularyLabel: string, statusLabel: string, emptyLabel: string): string {
   const title = item.slag ?? item.place_name ?? emptyLabel;
   const place = item.place_name ?? item.mgrs ?? '—';
-  const eyebrow = `#${item.lopnr} · ${item.begrepp[0] ?? item.status}`;
-  return `<span class="map-tooltip__eyebrow">${escapeMarkup(eyebrow)}</span><strong>${escapeMarkup(title)}</strong><span>${escapeMarkup(place)}</span>`;
+  const eyebrow = `#${item.lopnr} · ${vocabularyLabel}`;
+  return `<span class="map-tooltip__eyebrow">${escapeMarkup(eyebrow)}</span><strong>${escapeMarkup(title)}</strong><span>${escapeMarkup(place)}</span><span class="map-tooltip__status">${escapeMarkup(statusLabel)}</span>`;
 }
 
 function escapeMarkup(value: string): string {
@@ -107,8 +94,10 @@ function escapeMarkup(value: string): string {
 export function MapPanel(props: MapPanelProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const legendRef = useRef<HTMLDivElement | null>(null);
+  const legendButtonRef = useRef<HTMLButtonElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const geographyRef = useRef<L.GeoJSON | null>(null);
+  const geographyRef = useRef<L.LayerGroup | null>(null);
   const markerLayerRef = useRef<L.LayerGroup | null>(null);
   const gridLayerRef = useRef<L.LayerGroup | null>(null);
   const patternLayerRef = useRef<L.LayerGroup | null>(null);
@@ -128,6 +117,16 @@ export function MapPanel(props: MapPanelProps) {
   const mgrs = toMgrs(cursor.lat, cursor.lon) ?? '—';
 
   useEffect(() => {
+    if (!legend) return;
+    const close = (event: PointerEvent) => {
+      if (!(event.target instanceof Node)) return;
+      if (!legendRef.current?.contains(event.target) && !legendButtonRef.current?.contains(event.target)) setLegend(false);
+    };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [legend]);
+
+  useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = L.map(containerRef.current, {
       center: [62.2, 17.2],
@@ -142,6 +141,11 @@ export function MapPanel(props: MapPanelProps) {
     });
     L.control.zoom({ position: 'bottomright' }).addTo(map);
     L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
+    for (const [name, zIndex] of [['aurora-ground', 200], ['aurora-water', 220], ['aurora-roads', 240], ['aurora-borders', 260], ['aurora-places', 280]] as const) {
+      const pane = map.createPane(name);
+      pane.style.zIndex = String(zIndex);
+      pane.style.pointerEvents = 'none';
+    }
     markerLayerRef.current = L.layerGroup().addTo(map);
     gridLayerRef.current = L.layerGroup().addTo(map);
     patternLayerRef.current = L.layerGroup().addTo(map);
@@ -171,31 +175,54 @@ export function MapPanel(props: MapPanelProps) {
     const map = mapRef.current;
     if (!map || !data) return;
     geographyRef.current?.remove();
-    const layer = L.geoJSON(data, {
-      style(feature) {
-        const layerName = String(feature?.properties?.layer ?? feature?.properties?.featurecla ?? '').toLowerCase();
-        const isWater = /lake|river|water|ocean/.test(layerName);
-        const isSweden = Boolean(feature?.properties?.focus) || String(feature?.properties?.name ?? '').toLowerCase() === 'sweden';
-        return {
-          color: isWater ? '#32414e' : '#45515b',
-          fillColor: isWater ? '#0d151b' : isSweden ? '#252e34' : '#1d252b',
-          fillOpacity: isWater ? 0.72 : 0.94,
-          weight: isWater ? 0.65 : 0.9,
-        };
-      },
-      pointToLayer(_, latlng) {
-        return L.circleMarker(latlng, { radius: 1.5, color: '#73818b', weight: 1 });
-      },
-      onEachFeature(feature, layer) {
-        if (String(feature.properties?.layer).toLowerCase() !== 'city') return;
-        const name = String(feature.properties?.name ?? feature.properties?.name_sv ?? '');
-        if (name) layer.bindTooltip(escapeMarkup(name), { permanent: true, direction: 'right', offset: [3, 0], className: 'city-label' });
-      },
-    }).addTo(map);
-    layer.bringToBack();
-    geographyRef.current = layer;
-    return () => { layer.remove(); };
-  }, [data]);
+    const dark = props.theme === 'dark';
+    const featureLayer = (feature: GeoJSON.Feature | undefined) => String(feature?.properties?.layer ?? feature?.properties?.featurecla ?? '').toLowerCase();
+    const style = (feature: GeoJSON.Feature | undefined): L.PathOptions => {
+      const layerName = featureLayer(feature);
+      const isLake = layerName === 'lake';
+      const isRiver = layerName === 'river';
+      const isRoad = layerName === 'road';
+      const isBorder = layerName === 'border';
+      const roadType = String(feature?.properties?.road_type ?? '').toLowerCase();
+      const isHighway = isRoad && (roadType === 'major highway' || roadType === 'major');
+      const isSweden = Boolean(feature?.properties?.focus) || String(feature?.properties?.name ?? '').toLowerCase() === 'sweden';
+      const roadRank = Number(feature?.properties?.scalerank ?? 5);
+      return {
+        color: isHighway ? (dark ? '#5f9f76' : '#3f744f') : isRoad ? (dark ? '#090c0e' : '#30353a') : isRiver ? (dark ? '#5ba8d0' : '#2f7fa8') : isLake ? (dark ? '#4f96bd' : '#397f9f') : isBorder ? (dark ? '#a6b0b7' : '#626c73') : (dark ? '#68747c' : '#8b959b'),
+        fillColor: isLake ? (dark ? '#174c6a' : '#b7ddec') : isSweden ? (dark ? '#30353a' : '#d7dade') : (dark ? '#282d31' : '#e4e6e8'),
+        fillOpacity: isLake ? 0.92 : 0.96,
+        weight: isRoad ? (roadRank <= 3 ? 2 : 1.45) : isRiver ? 1.25 : isBorder ? 1.3 : isLake ? 1 : 0.9,
+        opacity: isRoad ? 0.95 : 1,
+      };
+    };
+    const layers = [
+      L.geoJSON(data, { pane: 'aurora-ground', filter: (feature) => featureLayer(feature) === 'land', style }),
+      L.geoJSON(data, { pane: 'aurora-water', filter: (feature) => ['lake', 'river'].includes(featureLayer(feature)), style }),
+      L.geoJSON(data, { pane: 'aurora-roads', filter: (feature) => featureLayer(feature) === 'road', style }),
+      L.geoJSON(data, { pane: 'aurora-borders', filter: (feature) => ['border', 'coastline'].includes(featureLayer(feature)), style }),
+      L.geoJSON(data, {
+        pane: 'aurora-places',
+        filter(feature) {
+          if (featureLayer(feature) !== 'city') return false;
+        const population = Number(feature.properties?.population ?? 0);
+        const capital = Boolean(feature.properties?.capital);
+        const reference = feature.properties?.source === 'aurora_reference';
+        if (zoom <= 5) return capital || population >= 250_000;
+        if (zoom === 6) return capital || population >= 90_000;
+        if (zoom === 7) return capital || population >= 30_000;
+        return reference || population >= 10_000;
+        },
+        pointToLayer(_, latlng) { return L.circleMarker(latlng, { pane: 'aurora-places', radius: 1.5, color: '#73818b', weight: 1 }); },
+        onEachFeature(feature, layer) {
+          const name = String(feature.properties?.name ?? feature.properties?.name_sv ?? '');
+          if (name) layer.bindTooltip(escapeMarkup(name), { permanent: true, direction: 'right', offset: [3, 0], className: 'city-label' });
+        },
+      }),
+    ];
+    const group = L.layerGroup(layers).addTo(map);
+    geographyRef.current = group;
+    return () => { group.remove(); };
+  }, [data, props.theme, zoom]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -223,19 +250,22 @@ export function MapPanel(props: MapPanelProps) {
       }
       const item = cluster.cases[0];
       const highlighted = String(item.id) === String(props.selectedId) || String(item.id) === String(props.hoveredId) || citedIdSet.has(String(item.id));
+      const vocabularyLabel = item.begrepp[0]?.trim() || t('map.unspecified');
+      const typeLabel = item.slag?.trim() || vocabularyLabel;
+      const statusLabel = t(`status.${item.status}`);
       const marker = L.marker([cluster.lat, cluster.lon], {
-        icon: symbolIcon(item, props.vocabulary, highlighted),
+        icon: colorIcon(item, typeLabel, statusLabel, highlighted),
         zIndexOffset: highlighted ? 1000 : 0,
         keyboard: true,
         title: `#${item.lopnr} ${item.slag ?? ''}`,
       });
-      marker.bindTooltip(renderTooltip(item, t('app.notAvailable')), { direction: 'top', offset: [0, -15], className: 'ops-tooltip' });
+      marker.bindTooltip(renderTooltip(item, vocabularyLabel, statusLabel, t('app.notAvailable')), { direction: 'top', offset: [0, -18], className: 'ops-tooltip' });
       marker.on('click', () => callbackRef.current.onSelect(item));
       marker.on('mouseover', () => callbackRef.current.onHover(item.id));
       marker.on('mouseout', () => callbackRef.current.onHover(null));
       layer.addLayer(marker);
     }
-  }, [citedIdSet, props.cases, props.hoveredId, props.selectedId, props.vocabulary, t, zoom]);
+  }, [citedIdSet, props.cases, props.hoveredId, props.selectedId, t, zoom]);
 
   useEffect(() => {
     const layer = gridLayerRef.current;
@@ -309,7 +339,7 @@ export function MapPanel(props: MapPanelProps) {
             <span aria-hidden="true">▦</span>
           </button>
           <button className="icon-button" type="button" title={t('map.fit')} aria-label={t('map.fit')} onClick={fitCases}><span aria-hidden="true">⌖</span></button>
-          <button className={`icon-button${legend ? ' is-active' : ''}`} type="button" title={t('map.legend')} aria-label={t('map.legend')} onClick={() => setLegend((value) => !value)}><span aria-hidden="true">◇</span></button>
+          <button ref={legendButtonRef} className={`icon-button${legend ? ' is-active' : ''}`} type="button" title={t('map.legend')} aria-label={t('map.legend')} onClick={() => setLegend((value) => !value)}><span aria-hidden="true">◇</span></button>
         </div>
       </header>
       <div className="map-wrap">
@@ -320,13 +350,18 @@ export function MapPanel(props: MapPanelProps) {
           <div className="map-empty-state"><span className="empty-glyph" aria-hidden="true">⌖</span><strong>{t('map.noPositionedTitle')}</strong><span>{t('map.noPositionedBody')}</span></div>
         )}
         {legend && (
-          <div className="map-legend panel-float">
+          <div className="map-legend panel-float" ref={legendRef}>
             <strong>{t('map.legend')}</strong>
             <span><i className="legend-shape legend-friend" />{t('map.friend')}</span>
             <span><i className="legend-shape legend-hostile" />{t('map.hostile')}</span>
             <span><i className="legend-shape legend-neutral" />{t('map.neutral')}</span>
             <span><i className="legend-shape legend-unknown" />{t('map.unknown')}</span>
             <span><i className="legend-shape legend-selected" />{t('map.selected')}</span>
+            <span><i className="legend-ground" />{t('map.ground')}</span>
+            <span><i className="legend-line legend-water" />{t('map.water')}</span>
+            <span><i className="legend-line legend-road" />{t('map.roads')}</span>
+            <span><i className="legend-line legend-highway" />{t('map.highways')}</span>
+            <span><i className="legend-line legend-border" />{t('map.borders')}</span>
           </div>
         )}
       </div>

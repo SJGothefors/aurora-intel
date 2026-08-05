@@ -3,7 +3,7 @@ import { listCases, parseArray } from '../cases.mjs';
 import { createQuestion, getSettings, listQuestions } from '../entities.mjs';
 import { listVocabulary } from '../vocabulary.mjs';
 import { SCHEMAS } from './schemas.mjs';
-import { extractionReportToCase, postprocessExtraction, sanitizeAssessment, sanitizeQa, sanitizeQuestions } from './postprocess.mjs';
+import { extractCompleteLabeled7S, extractionReportToCase, postprocessExtraction, sanitizeAssessment, sanitizeQa, sanitizeQuestions } from './postprocess.mjs';
 
 const STOPWORDS = new Set([
   'och', 'eller', 'att', 'det', 'den', 'de', 'som', 'vad', 'vilka', 'vilken', 'hur', 'har', 'finns',
@@ -18,6 +18,7 @@ function collectionCase(row) {
     id: row.id, time: row.time_utc, mgrs: row.mgrs, place: row.place_name ?? row.place_raw,
     slag: row.slag, sysselsattning: row.sysselsattning, begrepp: row.begrepp,
     aktor: row.aktor, star: row.star,
+    source_report_id: row.source_report_id,
   };
 }
 
@@ -37,6 +38,7 @@ function evidenceCase(row, question) {
     lopnr: row.lopnr,
     time_utc: row.time_utc,
     dtg_raw: row.dtg_raw,
+    source_report_id: row.source_report_id,
     time_uncertain: Boolean(row.time_uncertain),
     place_raw: row.place_raw,
     place_name: row.place_name,
@@ -89,6 +91,30 @@ function keywordQuery(question) {
   return [...new Set(terms.filter((term) => !STOPWORDS.has(term)))].slice(0, 8).join(' ');
 }
 
+function mapOverview(question, rows, language = 'sv') {
+  const normalized = String(question).toLocaleLowerCase('sv-SE');
+  if (!/(?:\bmap\b|\bkart(?:a|an|bild(?:en)?)\b)/u.test(normalized)
+    || !/(?:\bwhat\b|\bvad\b|\bshown\b|\bvisas\b|\bfinns\b|\bcurrently\b|\bnu\b)/u.test(normalized)) return null;
+  const located = rows.filter((row) => Number.isFinite(row.lat) && Number.isFinite(row.lon));
+  const counts = new Map();
+  for (const row of located) {
+    const type = row.slag?.trim() || row.begrepp[0]?.trim() || (language === 'en' ? 'unspecified type' : 'ospecificerat slag');
+    counts.set(type, (counts.get(type) ?? 0) + 1);
+  }
+  const descriptions = [...counts].map(([type, count]) => `${count} × ${type}`);
+  const places = [...new Set(located.map((row) => row.place_name ?? row.place_raw ?? row.mgrs).filter(Boolean))].slice(0, 4);
+  if (language === 'en') {
+    const answer = located.length
+      ? `The map currently shows ${located.length} ${located.length === 1 ? 'case' : 'cases'}: ${descriptions.join(', ')}.${places.length ? ` They are positioned at ${places.join(', ')}.` : ''}`
+      : 'No positioned cases match the current map and filters.';
+    return { answer, cited_case_ids: located.map((row) => row.id), pattern: { type: null, description: null } };
+  }
+  const answer = located.length
+    ? `Kartan visar just nu ${located.length} ärenden: ${descriptions.join(', ')}.${places.length ? ` De är positionerade vid ${places.join(', ')}.` : ''}`
+    : 'Inga positionerade ärenden matchar den aktuella kartbilden och filtreringen.';
+  return { answer, cited_case_ids: located.map((row) => row.id), pattern: { type: null, description: null } };
+}
+
 export class AIService {
   constructor({ db, llm, prompts, knowledge, config = {} }) {
     this.db = db;
@@ -124,6 +150,19 @@ export class AIService {
     assert(sourceText.length <= 100_000, 'REPORT_TOO_LARGE', 'The report text exceeds the size limit.', { status: 413 });
     const vocabulary = listVocabulary(this.db, { active: true }).map((entry) => entry.name_sv);
     const context = currentContext(payload);
+    const deterministic = extractCompleteLabeled7S(sourceText, {
+      activeVocabulary: vocabulary,
+      referenceDate: new Date(context.current_time_utc),
+      localOffsetMinutes: payload.local_offset_minutes,
+    });
+    if (deterministic) {
+      return {
+        ...deterministic,
+        drafts: deterministic.reports.map((report) => extractionReportToCase(report, {
+          sourceText, aiJson: { mode: 'labeled_7s', report }, createdBy: payload.created_by ?? this.config.operatorName ?? '',
+        })),
+      };
+    }
     const promptValues = {
       CURRENT_DATETIME: context.current_time_utc,
       LOCAL_TIMEZONE: context.local_timezone,
@@ -133,20 +172,20 @@ export class AIService {
     };
     const user = {
       task: this.taskPrompt('A1', promptValues),
-      context,
-      allowed_begrepp: vocabulary,
       untrusted_data_policy: UNTRUSTED_DATA_POLICY,
       report_text_untrusted: sourceText,
     };
     const raw = await this.llm.chatJson({
       schema: SCHEMAS.extraction, schemaName: 'aurora_extraction',
       messages: [this.systemMessage(), { role: 'user', content: JSON.stringify(user) }],
-      temperature: Number(this.config.llm?.extractionTemperature) || 0.1, seed: this.seed(), signal,
+      temperature: Number(this.config.llm?.extractionTemperature) || 0.1,
+      seed: this.seed(), maxTokens: Math.min(4096, Math.max(700, Math.ceil(sourceText.length * 1.5))), signal,
     });
     const processed = postprocessExtraction(raw, {
       activeVocabulary: vocabulary,
       referenceDate: new Date(context.current_time_utc),
       localOffsetMinutes: payload.local_offset_minutes,
+      sourceText,
     });
     return {
       ...processed,
@@ -172,13 +211,13 @@ export class AIService {
         UI_LANGUAGE: context.ui_language, ACTIVE_BEGREPP_JSON: activeVocabulary,
         KNOWLEDGE_EXCERPTS: knowledge, EXISTING_QUESTIONS_JSON: existing, CASE_JSON_LINES: caseLines,
       }),
-      context, active_begrepp: activeVocabulary, untrusted_data_policy: UNTRUSTED_DATA_POLICY,
-      cases_jsonl_untrusted: caseLines, existing_questions_untrusted: existing, knowledge,
+      context, untrusted_data_policy: UNTRUSTED_DATA_POLICY,
+      cases_jsonl_untrusted: caseLines, existing_questions_untrusted: existing,
     };
     const raw = await this.llm.chatJson({
       schema: SCHEMAS.questions, schemaName: 'aurora_collection_questions',
       messages: [this.systemMessage(), { role: 'user', content: JSON.stringify(user) }],
-      temperature: Number(this.config.llm?.generationTemperature) || 0.5, seed: this.seed(), signal,
+      temperature: Number(this.config.llm?.generationTemperature) || 0.5, seed: this.seed(), maxTokens: 600, signal,
     });
     const result = sanitizeQuestions(raw, cases.map((item) => item.id));
     const existingText = new Set(existing.map((item) => item.question.trim().toLocaleLowerCase('sv-SE')));
@@ -192,16 +231,19 @@ export class AIService {
     assert(question, 'EMPTY_QUESTION', 'The question is required.');
     assert(question.length <= 10_000, 'QUESTION_TOO_LARGE', 'The question exceeds the size limit.', { status: 413 });
     const keyword = keywordQuery(question);
-    let candidates = listCases(this.db, { ...payload.filters, q: keyword, limit: 40, sort: 'time_utc', direction: 'desc' }).rows;
+    const candidateLimit = Math.max(8, Math.min(40, Number(this.config.llm?.candidateCaseLimit) || 24));
+    let candidates = listCases(this.db, { ...payload.filters, q: keyword, limit: candidateLimit, sort: 'time_utc', direction: 'desc' }).rows;
     if (!candidates.length && keyword) {
-      candidates = listCases(this.db, { ...payload.filters, limit: 40, sort: 'time_utc', direction: 'desc' }).rows;
+      candidates = listCases(this.db, { ...payload.filters, limit: candidateLimit, sort: 'time_utc', direction: 'desc' }).rows;
     }
+    const overview = mapOverview(question, candidates, payload.language ?? 'sv');
+    if (overview) return overview;
     const knowledge = this.knowledge.select({
       question, begrepp: candidates.flatMap((item) => item.begrepp), aktor: candidates.map((item) => item.aktor),
     });
     const activeVocabulary = listVocabulary(this.db, { active: true }).map((entry) => entry.name_sv);
     const context = currentContext(payload);
-    const evidence = serializeEvidence(candidates, question);
+    const evidence = serializeEvidence(candidates, question, 12_000);
     candidates = evidence.rows;
     const caseLines = evidence.lines;
     const user = {
@@ -210,13 +252,13 @@ export class AIService {
         UI_LANGUAGE: context.ui_language, ACTIVE_BEGREPP_JSON: activeVocabulary,
         KNOWLEDGE_EXCERPTS: knowledge, QUESTION: question, CASE_JSON_LINES: caseLines,
       }),
-      context, active_begrepp: activeVocabulary, untrusted_data_policy: UNTRUSTED_DATA_POLICY,
-      question, candidate_rows_jsonl_untrusted: caseLines, knowledge,
+      context, untrusted_data_policy: UNTRUSTED_DATA_POLICY,
+      question, candidate_rows_jsonl_untrusted: caseLines,
     };
     const raw = await this.llm.chatJson({
       schema: SCHEMAS.qa, schemaName: 'aurora_qa',
       messages: [this.systemMessage(), { role: 'user', content: JSON.stringify(user) }],
-      temperature: 0.4, seed: this.seed(), signal,
+      temperature: 0.3, seed: this.seed(), maxTokens: 600, signal,
     });
     return sanitizeQa(raw, candidates.map((item) => item.id));
   }
@@ -253,7 +295,7 @@ export class AIService {
     const raw = await this.llm.chatJson({
       schema: SCHEMAS.assessment, schemaName: 'aurora_assessment',
       messages: [this.systemMessage(), { role: 'user', content: JSON.stringify(user) }],
-      temperature: 0.4, seed: this.seed(), signal,
+      temperature: 0.4, seed: this.seed(), maxTokens: 500, signal,
     });
     return sanitizeAssessment(raw, likelihoodScale);
   }

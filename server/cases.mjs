@@ -7,7 +7,7 @@ import { boundedStringArray, boundedText, encodeBoundedJson, INPUT_LIMITS } from
 
 export const CASE_COLUMNS = Object.freeze([
   'id', 'lopnr', 'created_at', 'updated_at', 'created_by', 'status', 'star',
-  'tags', 'begrepp', 'aktor', 'dtg_raw', 'time_utc', 'time_uncertain',
+  'tags', 'begrepp', 'aktor', 'source_report_id', 'dtg_raw', 'time_utc', 'time_uncertain',
   'place_raw', 'place_name', 'mgrs', 'lat', 'lon', 'position_missing',
   'styrka_raw', 'count_min', 'count_max', 'slag', 'sysselsattning',
   'symbol', 'sagesman', 'kallrapport_raw', 'ai_json', 'bedomning',
@@ -205,6 +205,7 @@ export function normalizeCase(db, rawInput, options = {}) {
     tags,
     begrepp,
     aktor,
+    source_report_id: text(merged.source_report_id, { field: 'source_report_id', maxBytes: INPUT_LIMITS.case.source_report_id }),
     dtg_raw: dtgRaw,
     time_utc: timeUtc,
     time_uncertain: timeUncertain,

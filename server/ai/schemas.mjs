@@ -13,8 +13,9 @@ export const EXTRACTION_SCHEMA = Object.freeze({
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['stunden', 'stallet', 'styrkan', 'slaget', 'sysselsattningen', 'symbolen', 'sagesmannen', 'begrepp', 'position_missing', 'fields_uncertain', 'summary_sv'],
+        required: ['source_report_id', 'stunden', 'stallet', 'styrkan', 'slaget', 'sysselsattningen', 'symbolen', 'sagesmannen', 'begrepp', 'position_missing', 'fields_uncertain', 'summary_sv'],
         properties: {
+          source_report_id: nullableString,
           stunden: {
             type: 'object', additionalProperties: false,
             required: ['raw', 'iso_utc', 'uncertain'],

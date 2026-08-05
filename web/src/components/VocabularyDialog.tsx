@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import milsymbol from 'milsymbol';
 import { useTranslation } from 'react-i18next';
 import type { VocabularyTerm } from '../types';
 import { Modal } from './Modal';
@@ -18,14 +17,9 @@ interface VocabularyDialogProps {
   onError: (message: string) => void;
 }
 
-const NEW_TERM: Partial<VocabularyTerm> = { name_sv: '', name_en: '', definition: '', active: true, sidc: 'SUGPU----------', sort: 999 };
+const NEW_TERM: Partial<VocabularyTerm> = { name_sv: '', name_en: '', definition: '', active: true, sidc: '', sort: 999 };
 
-function SymbolPreview({ sidc }: { sidc: string }) {
-  const uri = useMemo(() => {
-    try { return new milsymbol.Symbol(sidc || 'SUGPU----------', { size: 30 }).asCanvas().toDataURL('image/png'); } catch { return ''; }
-  }, [sidc]);
-  return uri ? <img className="symbol-preview" src={uri} alt="" /> : <span className="symbol-fallback">◇</span>;
-}
+function SymbolPreview(_props: { sidc: string }) { return <i className="term-color-box" aria-hidden="true" />; }
 
 export function VocabularyDialog({ open, terms, onClose, onCreate, onUpdate, onDelete, onImport, exportUrl, onNotify, onError }: VocabularyDialogProps) {
   const { t } = useTranslation();

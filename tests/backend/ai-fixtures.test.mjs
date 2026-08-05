@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { AIService } from '../../server/ai/service.mjs';
+import { postprocessExtraction } from '../../server/ai/postprocess.mjs';
 import { temporaryDatabase } from './helpers.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -54,4 +55,32 @@ test('mocked local model fixtures are defensively post-processed into previews',
   assert.ok(results[3].reason);
   assert.equal(llm.calls.length, 4);
   assert.ok(llm.calls.every((call) => call.schema && call.schemaName === 'aurora_extraction'));
+});
+
+test('explicit labeled 7S fields and source report id override model omissions', () => {
+  const sourceText = '051708. Stund, 17:01, Ställe: 33VVC 40125 89192, Styrka, 2 stridsvagnar. Slag: T90, sysselsättning, framrycker längsväg. Symbol, vita kryss. sagesman: Jacob Gothefors.';
+  const raw = {
+    reports: [{
+      source_report_id: null,
+      stunden: { raw: '17:01', iso_utc: null, uncertain: false },
+      stallet: { raw: '33VVC 40125 89192', mgrs: '33VVC 40125 89192', lat: null, lon: null, place_name: 'Påhittad plats' },
+      styrkan: { raw: '2 stridsvagnar', count_min: 2, count_max: 2 },
+      slaget: null, sysselsattningen: null, symbolen: null, sagesmannen: null,
+      begrepp: ['FORDON MIL'], position_missing: false,
+      fields_uncertain: ['slaget', 'sysselsattningen', 'symbolen', 'sagesmannen'], summary_sv: '',
+    }],
+    reason: null,
+  };
+  const result = postprocessExtraction(raw, {
+    sourceText, activeVocabulary: ['FORDON MIL', 'STRIDSFORDON', 'ÖVRIGT/OKÄNT'],
+    referenceDate: new Date('2026-08-05T15:30:00.000Z'), localOffsetMinutes: 120,
+  }).reports[0];
+  assert.equal(result.source_report_id, '051708');
+  assert.equal(result.slaget, 'T90');
+  assert.equal(result.sysselsattningen, 'framrycker längsväg');
+  assert.equal(result.symbolen, 'vita kryss');
+  assert.equal(result.sagesmannen, 'Jacob Gothefors');
+  assert.equal(result.stallet.place_name, null);
+  assert.deepEqual(result.begrepp, ['STRIDSFORDON']);
+  assert.equal(result.fields_uncertain.includes('slaget'), false);
 });

@@ -78,6 +78,7 @@ export function CaseDetail({ item, vocabulary, tagSuggestions, llm, cited, onClo
             <div className="detail-overview">
               <div className="detail-actions"><button className="quiet-button" type="button" onClick={() => setEditing(true)}>{t('app.edit')}</button>{item.position_missing && <button className="accent-button" type="button" onClick={() => onAddPosition(item)}><span aria-hidden="true">⚑</span>{t('ledger.addPosition')}</button>}</div>
               <section className="detail-section"><span className="eyebrow">7S</span><dl className="field-list">
+                <div><dt>{t('form.sourceReportId')}</dt><dd className="mono-cell">{item.source_report_id ?? '—'}</dd></div>
                 <div><dt>{t('form.time')}</dt><dd><strong>{item.dtg_raw ?? '—'}</strong><small>{formatDateTime(item.time_utc, i18n.language)}{item.time_uncertain ? ` · ${t('intake.uncertain')}` : ''}</small></dd></div>
                 <div><dt>{t('form.place')}</dt><dd><strong>{item.place_name ?? item.place_raw ?? '—'}</strong><small className="mono-cell">{item.mgrs ?? `${formatCoordinate(item.lat)}, ${formatCoordinate(item.lon)}`}</small></dd></div>
                 <div><dt>{t('form.strength')}</dt><dd>{item.styrka_raw ?? '—'}</dd></div>

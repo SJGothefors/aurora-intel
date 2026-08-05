@@ -28,7 +28,7 @@ export function Modal({ open, title, eyebrow, wide, children, footer, onClose }:
     return () => dialog.removeEventListener('cancel', cancel);
   }, [onClose]);
   return (
-    <dialog className={`app-dialog${wide ? ' dialog-wide' : ''}`} ref={dialogRef} onClick={(event) => { if (event.target === dialogRef.current) onClose(); }}>
+    <dialog className={`app-dialog${wide ? ' dialog-wide' : ''}`} ref={dialogRef} onPointerDown={(event) => { if (event.target === dialogRef.current) onClose(); }}>
       <div className="dialog-card">
         <header className="dialog-header">
           <div>{eyebrow && <span className="eyebrow">{eyebrow}</span>}<h2>{title}</h2></div>

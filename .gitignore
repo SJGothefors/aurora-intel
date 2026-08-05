@@ -5,7 +5,9 @@ release/
 offline-store/
 runtime/*/
 llm/bin/
+llm/payload/
 llm/models/*.gguf
+.cache/
 data/
 exports/*.xlsx
 exports/*.csv

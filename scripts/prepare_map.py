@@ -2,7 +2,7 @@
 """Clip Natural Earth 1:10m GeoJSON into Aurora's offline map contract.
 
 This maintainer-only script uses only Python's standard library and is never run
-by offline build/start. Inputs are the five Natural Earth v5.1.2 GeoJSON files
+by offline build/start. Inputs are the seven Natural Earth v5.1.2 GeoJSON files
 listed in assets/map/LICENSE.md.
 """
 
@@ -15,6 +15,21 @@ from pathlib import Path
 
 BBOX = (4.0, 53.0, 33.0, 71.5)
 TOLERANCE = 0.004
+
+# Natural Earth's regional layer has no Gotland roads. These deliberately
+# schematic corridors and place labels provide orientation, not navigation.
+GOTLAND_PLACES = {
+    "Slite": (18.803, 57.704),
+    "Hemse": (18.374, 57.237),
+    "Klintehamn": (18.204, 57.386),
+    "Fårösund": (19.055, 57.863),
+}
+GOTLAND_ROADS = {
+    "Väg 140": [(18.295, 57.635), (18.204, 57.386), (18.277, 57.031)],
+    "Väg 142": [(18.295, 57.635), (18.456, 57.506), (18.374, 57.237), (18.277, 57.031)],
+    "Väg 147": [(18.295, 57.635), (18.523, 57.650), (18.803, 57.704)],
+    "Väg 148": [(18.295, 57.635), (18.665, 57.745), (18.792, 57.787), (19.055, 57.863)],
+}
 
 
 def inside(point, edge):
@@ -215,6 +230,27 @@ def build(source_dir):
         if geometry:
             output.append(feature(geometry, layer="lake", name=name, scalerank=rank))
 
+    for item in load(source_dir, "rivers"):
+        props = item.get("properties", {})
+        rank = props.get("scalerank")
+        if int(99 if rank is None else rank) > 6:
+            continue
+        geometry = clip_geometry(item.get("geometry"))
+        if geometry:
+            output.append(feature(geometry, layer="river", name=props.get("name") or "", scalerank=rank))
+
+    for item in load(source_dir, "roads"):
+        props = item.get("properties", {})
+        rank = props.get("scalerank")
+        if int(99 if rank is None else rank) > 5:
+            continue
+        geometry = clip_geometry(item.get("geometry"))
+        if geometry:
+            output.append(feature(geometry, layer="road", name=props.get("name") or props.get("namealt") or "", road_type=props.get("type") or "", scalerank=rank))
+
+    for name, coordinates in GOTLAND_ROADS.items():
+        output.append(feature({"type": "LineString", "coordinates": coordinates}, layer="road", name=name, road_type="major", scalerank=5, source="aurora_reference"))
+
     for item in load(source_dir, "borders"):
         geometry = clip_geometry(item.get("geometry"))
         if not geometry:
@@ -227,25 +263,30 @@ def build(source_dir):
         if geometry:
             output.append(feature(geometry, layer="coastline"))
 
-    strategic = {"Visby", "Luleå", "Mariehamn", "Kiruna", "Boden", "Kaliningrad"}
+    strategic = {"Visby", "Slite", "Hemse", "Klintehamn", "Luleå", "Mariehamn", "Kiruna", "Boden", "Kaliningrad"}
     for item in load(source_dir, "places"):
         props = item.get("properties", {})
         name = props.get("NAME") or props.get("NAMEASCII") or ""
+        country = props.get("ADM0NAME") or props.get("SOV0NAME") or ""
         population = int(props.get("POP_MAX") or props.get("POP_MIN") or 0)
-        if population < 50_000 and name not in strategic:
+        minimum_population = 10_000 if country == "Sweden" else 50_000
+        if population < minimum_population and name not in strategic:
             continue
         geometry = clip_geometry(item.get("geometry"))
         if geometry:
-            output.append(feature(geometry, layer="city", name=name, name_sv=name, population=population, capital=bool(props.get("ADM0CAP")), strategic_label=name in strategic))
+            output.append(feature(geometry, layer="city", name=name, name_sv=name, country=country, population=population, capital=bool(props.get("ADM0CAP")), scalerank=props.get("SCALERANK"), strategic_label=name in strategic))
 
-    order = {"land": 0, "lake": 1, "border": 2, "coastline": 3, "city": 4}
+    for name, coordinates in GOTLAND_PLACES.items():
+        output.append(feature({"type": "Point", "coordinates": coordinates}, layer="city", name=name, name_sv=name, population=0, capital=False, strategic_label=True, source="aurora_reference"))
+
+    order = {"land": 0, "lake": 1, "river": 2, "road": 3, "border": 4, "coastline": 5, "city": 6}
     output.sort(key=lambda item: (order[item["properties"]["layer"]], item["properties"].get("name", "")))
     return {
         "type": "FeatureCollection",
-        "name": "aurora-natural-earth-10m-nordic-baltic",
+        "name": "aurora-nordic-baltic-reference-map",
         "bbox": list(BBOX),
         "aurora": {
-            "source": "Natural Earth 1:10m",
+            "source": "Natural Earth 1:10m with schematic Gotland reference overlay",
             "version": "5.1.2",
             "clip": "4E–33E, 53N–71.5N",
             "simplification_degrees": TOLERANCE,
@@ -256,7 +297,7 @@ def build(source_dir):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("source_dir", type=Path, help="Directory containing countries/coastline/borders/lakes/places.geojson")
+    parser.add_argument("source_dir", type=Path, help="Directory containing countries/coastline/borders/lakes/rivers/roads/places.geojson")
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
     result = build(args.source_dir)

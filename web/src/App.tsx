@@ -352,7 +352,7 @@ export function App() {
       <div className="classification-banner"><span className="banner-mark" aria-hidden="true" />{settings.bannerText || t('app.classification')}<span className="banner-local"><i />{t('app.localOnly')}</span></div>
       <header className="topbar">
         <button className="wordmark" type="button" onClick={() => { setFilters(DEFAULT_FILTERS); setSelectedId(null); }}><span className="wordmark-a">A</span><span><strong>{t('app.name')}</strong><small>{t('app.subtitle')}</small></span></button>
-        <label className="global-search"><span aria-hidden="true">⌕</span><input ref={searchRef} value={filters.query} onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))} placeholder={t('header.searchPlaceholder')} aria-label={t('header.searchLabel')} />{searchPending && <i className="search-progress" role="status" title={t('header.searching')} />}<kbd>/</kbd>{filters.query && <button type="button" aria-label={t('intake.clear')} onClick={() => setFilters((current) => ({ ...current, query: '' }))}>×</button>}</label>
+        <label className="global-search"><span className="global-search-label">{t('header.searchLabel')}</span><input ref={searchRef} value={filters.query} onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))} placeholder={t('header.searchPlaceholder')} aria-label={t('header.searchLabel')} />{searchPending && <i className="search-progress" role="status" title={t('header.searching')} />}<span className="search-shortcut" aria-hidden="true">/</span>{filters.query && <button type="button" aria-label={t('intake.clear')} onClick={() => setFilters((current) => ({ ...current, query: '' }))}>×</button>}</label>
         <div className="topbar-actions">
           <button className={`llm-status status-${llm.status}`} type="button" title={llm.detail ?? t(`llm.${llm.status}`)} onClick={() => setDialog('settings')}><i /><span><small>{t('llm.label')}</small><strong>{t(`llm.${llm.status}`)}</strong></span></button>
           <button className="new-case-button" type="button" onClick={openIntake}><span aria-hidden="true">＋</span>{t('header.newCase')}<kbd>N</kbd></button>
@@ -394,7 +394,7 @@ export function App() {
           </div>
           <div className="splitter" role="separator" aria-orientation="vertical" aria-label={t('ledger.resize')} onPointerDown={onSplitterDown}><i /><i /><i /></div>
           <div className="split-pane map-side">
-            <MapPanel cases={filteredCases} vocabulary={vocabulary} selectedId={selectedId} hoveredId={hoveredId} citedIds={citedIds} answerPattern={answer?.pattern} onSelect={openCase} onHover={setHoveredId} onExtentChange={setMapBounds} onShowMissing={openMissing} />
+            <MapPanel cases={filteredCases} theme={settings.theme} selectedId={selectedId} hoveredId={hoveredId} citedIds={citedIds} answerPattern={answer?.pattern} onSelect={openCase} onHover={setHoveredId} onExtentChange={setMapBounds} onShowMissing={openMissing} />
           </div>
         </div>
 

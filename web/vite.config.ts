@@ -37,10 +37,13 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 5173,
     strictPort: false,
-    proxy: {
-      '/api': 'http://127.0.0.1:8474',
-      '/assets': 'http://127.0.0.1:8474',
-    },
+    proxy: Object.fromEntries(['/api', '/assets'].map((prefix) => [prefix, {
+      target: `http://127.0.0.1:${process.env.AURORA_DEV_API_PORT ?? '8474'}`,
+      changeOrigin: true,
+      configure(proxy) {
+        proxy.on('proxyReq', (request) => request.setHeader('origin', `http://127.0.0.1:${process.env.AURORA_DEV_API_PORT ?? '8474'}`));
+      },
+    }])),
   },
   build: {
     target: 'es2020',

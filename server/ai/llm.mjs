@@ -149,13 +149,14 @@ export class LlamaClient {
     }
   }
 
-  async chatJson({ schema, schemaName, messages, temperature, seed, signal }) {
+  async chatJson({ schema, schemaName, messages, temperature, seed, maxTokens, signal }) {
     const body = {
       model: this.model,
       messages,
       temperature,
       seed,
       stream: false,
+      ...(maxTokens ? { max_tokens: maxTokens } : {}),
       response_format: {
         type: 'json_schema',
         json_schema: { name: schemaName, strict: true, schema },

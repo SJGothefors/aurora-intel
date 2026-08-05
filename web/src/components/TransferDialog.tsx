@@ -17,7 +17,7 @@ type ImportMode = 'replace' | 'merge' | 'append';
 
 const EXPORT_COLUMNS = [
   'id', 'lopnr', 'created_at', 'updated_at', 'created_by', 'status', 'star',
-  'tags', 'begrepp', 'aktor', 'dtg_raw', 'time_utc', 'time_uncertain',
+  'tags', 'begrepp', 'aktor', 'source_report_id', 'dtg_raw', 'time_utc', 'time_uncertain',
   'place_raw', 'place_name', 'mgrs', 'lat', 'lon', 'position_missing',
   'styrka_raw', 'count_min', 'count_max', 'slag', 'sysselsattning',
   'symbol', 'sagesman', 'kallrapport_raw', 'ai_json', 'bedomning',
@@ -25,7 +25,7 @@ const EXPORT_COLUMNS = [
 ] as const;
 
 const MEANINGFUL_IMPORT_FIELDS = [
-  'tags', 'begrepp', 'aktor', 'dtg_raw', 'time_utc', 'place_raw',
+  'tags', 'begrepp', 'aktor', 'source_report_id', 'dtg_raw', 'time_utc', 'place_raw',
   'place_name', 'mgrs', 'lat', 'lon', 'styrka_raw', 'count_min',
   'count_max', 'slag', 'sysselsattning', 'symbol', 'sagesman',
   'kallrapport_raw', 'bedomning',

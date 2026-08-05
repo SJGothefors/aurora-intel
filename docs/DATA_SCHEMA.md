@@ -28,6 +28,7 @@ One row per händelse/ärende.
 | `tags` | TEXT/JSON | no | Array of free-text strings, default `[]`. |
 | `begrepp` | TEXT/JSON | no | Unique vocabulary names, default `[]`. |
 | `aktor` | TEXT | no | `Okänd`, `Misstänkt främmande`, `Civil`, `Egen`. |
+| `source_report_id` | TEXT | yes | Original source report time/message number, for example `051708`. |
 | `dtg_raw` | TEXT | yes | Original time phrase/DTG. |
 | `time_utc` | TEXT | yes | Normalized UTC time. |
 | `time_uncertain` | INTEGER | no | Approximate/relative/ambiguous time. |
@@ -58,7 +59,7 @@ Checks constrain enums, booleans, coordinate ranges, non-negative counts, and JS
 | `name_en` | TEXT | English display translation. |
 | `definition` | TEXT | Editable usage guidance. |
 | `active` | INTEGER | `0`/`1`; inactive values remain valid historically. |
-| `sidc` | TEXT | Milsymbol/APP-6 code; affiliation is replaced from `cases.aktor` at render time. |
+| `sidc` | TEXT | Legacy/import compatibility field. The UI uses simple actor colours and does not render military symbols. |
 | `sort` | INTEGER | Unique display order. |
 
 The first migration seeds preset `BAS` exactly once. `idx_begrepp_active_sort` supports ordered active lookups. Triggers `begrepp_unknown_stays_active`, `begrepp_unknown_not_deleted`, and `begrepp_unknown_not_renamed` protect the required fallback in the database as well as application code. Vocabulary JSON import validates uniqueness, SIDC strings, and ordering before replacing/merging.

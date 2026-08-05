@@ -20,6 +20,7 @@ export interface IntelCase {
   tags: string[];
   begrepp: string[];
   aktor: Actor;
+  source_report_id: string | null;
   dtg_raw: string | null;
   time_utc: string | null;
   time_uncertain: boolean;
@@ -112,6 +113,7 @@ export interface ExtractionField<T> {
 }
 
 export interface ExtractedReport {
+  source_report_id: string | null;
   stunden: ExtractionField<string>;
   stallet: ExtractionField<string>;
   styrkan: ExtractionField<string>;

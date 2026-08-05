@@ -1,22 +1,6 @@
 import * as mgrs from 'mgrs';
 import type { ExtractedReport, IntelCase } from './types';
 
-const NUMERIC_STANDARD_IDENTITY: Record<IntelCase['aktor'], string> = {
-  Okänd: '1',
-  'Misstänkt främmande': '6',
-  Civil: '4',
-  Egen: '3',
-};
-
-const LEGACY_AFFILIATION: Record<IntelCase['aktor'], string> = {
-  Okänd: 'U',
-  'Misstänkt främmande': 'H',
-  Civil: 'N',
-  Egen: 'F',
-};
-
-const DEFAULT_NUMERIC_SIDC = '10031000000000000000';
-
 export function isFiniteCoordinate(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
@@ -74,27 +58,6 @@ export function mgrsTenKilometerSquare(input: string | null | undefined): string
   return `${match[1]}${match[2]}${easting[0]}${northing[0]}`;
 }
 
-/**
- * Applies Aurora's actor classification without changing a SIDC's standard or
- * length. Numeric 2525D/E SIDCs store standard identity in the fourth digit;
- * legacy 15-character SIDCs store affiliation in the second character.
- */
-export function sidcForActor(value: string | null | undefined, actor: IntelCase['aktor']): string {
-  const sidc = value?.trim().toUpperCase().replace(/\s+/g, '') ?? '';
-
-  if (/^\d{20}(?:\d{10})?$/.test(sidc)) {
-    return `${sidc.slice(0, 3)}${NUMERIC_STANDARD_IDENTITY[actor]}${sidc.slice(4)}`;
-  }
-
-  // Accept legacy values only when they are already complete SIDCs. In
-  // particular, never pad or truncate a numeric SIDC into the legacy format.
-  if (/^[SGWIOE][PUAFNSHGWMDLJKO][A-Z0-9-][A-Z0-9-]{12}$/.test(sidc)) {
-    return `${sidc[0]}${LEGACY_AFFILIATION[actor]}${sidc.slice(2)}`;
-  }
-
-  return `${DEFAULT_NUMERIC_SIDC.slice(0, 3)}${NUMERIC_STANDARD_IDENTITY[actor]}${DEFAULT_NUMERIC_SIDC.slice(4)}`;
-}
-
 export function caseFromExtraction(report: ExtractedReport, raw: string): Partial<IntelCase> {
   return {
     status: 'Ny',
@@ -102,6 +65,7 @@ export function caseFromExtraction(report: ExtractedReport, raw: string): Partia
     tags: [],
     begrepp: report.begrepp ?? [],
     aktor: 'Okänd',
+    source_report_id: report.source_report_id ?? null,
     dtg_raw: report.stunden?.raw ?? null,
     time_utc: report.stunden?.iso_utc ?? null,
     time_uncertain: Boolean(report.stunden?.uncertain || report.fields_uncertain?.includes('stunden')),

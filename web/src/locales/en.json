@@ -134,6 +134,12 @@
     "Egen": "Friendly"
   },
   "map": {
+    "unspecified": "Unspecified",
+    "roads": "Main roads",
+    "highways": "Highways",
+    "water": "Lakes and rivers",
+    "ground": "Ground",
+    "borders": "Country borders",
     "eyebrow": "OPERATING PICTURE",
     "title": "Nordic area of operations",
     "missing": "{{count}} without position",
@@ -189,6 +195,7 @@
     "newBlank": "New blank form"
   },
   "form": {
+    "sourceReportId": "Source report ID",
     "time": "Time",
     "timeIso": "Normalized time (UTC)",
     "place": "Place",
@@ -344,7 +351,6 @@
     "density": "Density",
     "compact": "Compact",
     "comfortable": "Comfortable",
-    "accent": "Accent colour",
     "likelihood": "Likelihood scale",
     "likelihoodHint": "One step per line, from lowest to highest likelihood.",
     "trigger": "Collection-question threshold",
@@ -380,7 +386,7 @@
     "nameEn": "English name",
     "definition": "Definition",
     "sidc": "Symbol code (SIDC)",
-    "symbol": "APP-6 symbol",
+    "symbol": "Marker",
     "order": "Order",
     "moveUp": "Move up",
     "moveDown": "Move down",

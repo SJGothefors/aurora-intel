@@ -36,7 +36,7 @@ const MAX_IMPORT_COLUMNS = 128;
 const MAX_IMPORT_CELLS = 500_000;
 const MAX_CELL_CHARACTERS = 250_000;
 const MEANINGFUL_CASE_COLUMNS = new Set([
-  'dtg_raw', 'time_utc', 'place_raw', 'place_name', 'mgrs', 'lat', 'lon', 'styrka_raw',
+  'source_report_id', 'dtg_raw', 'time_utc', 'place_raw', 'place_name', 'mgrs', 'lat', 'lon', 'styrka_raw',
   'count_min', 'count_max', 'slag', 'sysselsattning', 'symbol', 'sagesman',
   'kallrapport_raw', 'begrepp', 'tags', 'bedomning',
 ]);

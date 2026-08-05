@@ -3,6 +3,7 @@ import { AppError, assert } from './errors.mjs';
 export const INPUT_LIMITS = Object.freeze({
   case: Object.freeze({
     created_by: 256,
+    source_report_id: 256,
     dtg_raw: 256,
     place_raw: 2 * 1024,
     place_name: 512,

@@ -10,22 +10,24 @@ Source files:
 | Coastline | `geojson/ne_10m_coastline.geojson` | `6f75ae0e0de157b14946e2255eb1f5486d9a13819032e26d4610852d296788f6` |
 | National land borders | `geojson/ne_10m_admin_0_boundary_lines_land.geojson` | `74d9c16229c095fde65943a9919e337682f044bcebccb120764f38edf3b70f4a` |
 | Lakes | `geojson/ne_10m_lakes.geojson` | `2d036f53dedec578001c5c30c2959ee7d4eebc1306900fa4367c49929ec8f2d9` |
+| Major rivers | `geojson/ne_10m_rivers_lake_centerlines.geojson` | `bb854a900ecbd3b408df46d5e16e3e0f974ba55993f9d8b5c26e855273c0905a` |
+| Major roads | `geojson/ne_10m_roads.geojson` | `66a0c7b438e92fd124822cc5921cfa11042f48c294ade5e0f03f2c6640fd0248` |
 | Populated places | `geojson/ne_10m_populated_places.geojson` | `9b8e3de09048ef00dfc70357dbb9fa324493f214b5e0ae4daf1aa79a8d10116b` |
 
-All five tagged URLs share this prefix:
+All seven tagged URLs share this prefix:
 
 ```text
 https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/
 ```
 
-The reproducible standard-library script `scripts/prepare_map.py` clips geometry to 4°E–33°E / 53°N–71.5°N, applies a 0.004-degree display simplification, rounds coordinates to five decimals, keeps named lakes of Natural Earth scalerank 0–5, and keeps populated places with `POP_MAX >= 50000` plus the explicitly labelled strategic regional places Visby, Luleå, Mariehamn, Kiruna, Boden, and Kaliningrad. It maps the sources into one FeatureCollection whose `properties.layer` is `land`, `coastline`, `border`, `lake`, or `city`; Sweden land has `focus: true`. The checked-in result contains 417 features and has SHA-256 `1bdc5992073786de56fbfe37fdf3513f1d738b970dfd0a5ca1f0866adde19dfd`.
+The reproducible standard-library script `scripts/prepare_map.py` clips geometry to 4°E–33°E / 53°N–71.5°N, applies a 0.004-degree display simplification, and retains selected major lakes, rivers, roads, and populated places. Swedish settlements down to about 10,000 inhabitants are retained so the application can reveal them progressively at closer zoom levels. It also adds four schematic Gotland road corridors and four settlement labels because the Natural Earth road layer contains no island roads. These application-maintained reference lines are deliberately approximate and must not be used for navigation. The script maps everything into one FeatureCollection whose `properties.layer` identifies each layer; Sweden land has `focus: true`. The checked-in result contains 816 features and has SHA-256 `c075eec94cf160cb06a437cde26fdb423800b191ce9b86b7222a21cb1d7f0ab4`.
 
-Reproduction (online maintainer workflow, not target build): download the five files above, rename them to `countries.geojson`, `coastline.geojson`, `borders.geojson`, `lakes.geojson`, and `places.geojson` in one temporary directory, then run:
+Reproduction (online maintainer workflow, not target build): download the seven files above, rename them to `countries.geojson`, `coastline.geojson`, `borders.geojson`, `lakes.geojson`, `rivers.geojson`, `roads.geojson`, and `places.geojson` in one temporary directory, then run:
 
 ```text
 python3 scripts/prepare_map.py <temporary-source-directory> assets/map/nordic-baltic.geojson
 ```
 
-The release target does not need Python. The generated local file includes Sweden, neighbouring countries, Gotland, Öland, Åland, Bornholm, the Baltic states, Kaliningrad/Gulf of Finland context, coastline, national borders, major lakes, and city labels. It is a display basemap, not a navigation, targeting, survey, or legal-boundary product. Natural Earth boundary treatment carries no position by Aurora about administrative status.
+The release target does not need Python. The generated local file includes Sweden, neighbouring countries, Gotland, Öland, Åland, Bornholm, the Baltic states, Kaliningrad/Gulf of Finland context, coastline, national borders, major roads, major lakes and rivers, and city labels. It is a display basemap, not a navigation, targeting, survey, or legal-boundary product. Natural Earth boundary treatment carries no position by Aurora about administrative status.
 
 Natural Earth public-domain terms: <https://www.naturalearthdata.com/about/terms-of-use/>. Repository/release provenance: <https://github.com/nvkelso/natural-earth-vector/tree/v5.1.2>.

@@ -311,20 +311,30 @@ pre,
 .global-search {
   position: relative;
   display: flex;
+  flex-direction: row;
   flex: 1 1 440px;
   align-items: center;
   max-width: 720px;
   height: 38px;
   border: 1px solid var(--line-strong);
+  border-radius: 3px;
   background: var(--bg-raised);
+  box-shadow: inset 0 1px rgb(255 255 255 / 2%);
 }
 
-.global-search > span {
-  padding-left: 12px;
-  color: var(--muted);
-  font-size: 20px;
-  line-height: 1;
-  transform: rotate(-12deg);
+.global-search-label {
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 0 11px;
+  border-right: 1px solid var(--line);
+  color: var(--text-soft);
+  font-family: "Saira Condensed", sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .09em;
+  text-transform: uppercase;
 }
 
 .global-search input {
@@ -361,8 +371,16 @@ kbd {
   letter-spacing: 0.03em;
 }
 
-.global-search > kbd {
-  margin-right: 9px;
+.search-shortcut {
+  display: grid;
+  flex: 0 0 20px;
+  height: 20px;
+  margin-right: 8px;
+  place-items: center;
+  border-radius: 2px;
+  color: var(--muted-2);
+  background: var(--panel-2);
+  font: 11px "IBM Plex Mono", monospace;
 }
 
 .search-progress {
@@ -579,6 +597,7 @@ kbd {
   position: relative;
   z-index: 400;
   display: flex;
+  flex-wrap: wrap;
   min-height: 41px;
   align-items: center;
   gap: 9px;
@@ -666,10 +685,8 @@ kbd {
 }
 
 .filter-fields {
-  position: absolute;
-  top: calc(100% + 1px);
-  left: 0;
-  right: 0;
+  position: relative;
+  flex: 1 0 100%;
   display: grid;
   grid-template-columns: repeat(6, minmax(130px, 1fr));
   gap: 10px;
@@ -794,6 +811,7 @@ input[type="checkbox"] {
 
 .main-layout {
   position: relative;
+  z-index: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 398px;
   min-width: 0;
@@ -816,6 +834,8 @@ input[type="checkbox"] {
 .split-pane,
 .ledger-panel,
 .map-panel {
+  position: relative;
+  z-index: 0;
   min-width: 0;
   min-height: 0;
 }
@@ -1437,22 +1457,11 @@ input[type="checkbox"] {
   display: none;
 }
 
-.mil-marker {
-  display: grid;
-  place-items: center;
-}
-
-.mil-marker img {
-  display: block;
-  max-width: none;
-}
-
-.mil-marker.is-highlighted::before,
-.fallback-marker.is-highlighted::before {
+.color-marker.is-highlighted::before {
   position: absolute;
   z-index: -1;
   top: 50%;
-  left: 50%;
+  left: 7px;
   width: 44px;
   height: 44px;
   border: 2px solid var(--accent);
@@ -1462,20 +1471,19 @@ input[type="checkbox"] {
   animation: marker-pulse 1.6s ease-out infinite;
 }
 
-.fallback-marker {
-  display: grid;
-  place-items: center;
-  border: 2px solid #e2c15f;
-  color: #111;
-  background: #e2c15f;
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 8px;
-  font-weight: 700;
-}
-
-.fallback-marker.affiliation-f { border-color: #68a9d7; background: #68a9d7; }
-.fallback-marker.affiliation-h { border-color: #df6767; background: #df6767; }
-.fallback-marker.affiliation-n { border-color: #6fa678; background: #6fa678; }
+.color-marker { display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.marker-actor, .term-color-box { display:block; flex:0 0 14px; width:14px; height:14px; border:2px solid #e2c15f; background:#e2c15f; box-shadow:0 1px 3px rgb(0 0 0 / 45%); }
+.color-marker.marker-friend .marker-actor { border-color:#68a9d7; background:#68a9d7; }
+.color-marker.marker-hostile .marker-actor { border-color:#df6767; background:#df6767; }
+.color-marker.marker-civil .marker-actor { border-color:#6fa678; background:#6fa678; }
+.marker-copy { display:flex; min-width:0; flex-direction:column; align-items:flex-start; gap:2px; }
+.marker-copy > b { overflow:hidden; max-width:145px; color:#edf2f4; font:600 10px "Saira Condensed", sans-serif; letter-spacing:.025em; text-overflow:ellipsis; text-shadow:0 1px 3px #000; }
+.marker-status { padding:1px 4px; border:1px solid #697681; border-radius:2px; color:#d9e0e4; background:rgb(19 28 34 / 88%); font:normal 7px "IBM Plex Sans", sans-serif; text-shadow:none; }
+.marker-status-new { border-color:#548566; color:#a9d8b5; }
+.marker-status-progress { border-color:#537c99; color:#add4ee; }
+.marker-status-followup { border-color:#9a7e42; color:#efd590; }
+.marker-status-closed { border-color:#687078; color:#b8c0c5; }
+.map-tooltip__status { margin-top:3px; color:#aeb9c0; font-size:8px; }
 
 .map-loading,
 .map-warning {
@@ -1567,6 +1575,12 @@ input[type="checkbox"] {
 .legend-neutral { border-color: #6fa678; }
 .legend-unknown { border-color: #e2c15f; }
 .legend-selected { border-color: var(--accent); border-radius: 50%; }
+.legend-ground { display:inline-block; width:15px; height:10px; border:1px solid #68747c; background:#30353a; }
+.legend-line { display:inline-block; width:15px; height:0; border-top:2px solid; }
+.legend-road { border-color:#090c0e; }
+.legend-highway { border-color:#5f9f76; }
+.legend-water { border-color:#58a9d2; }
+.legend-border { border-color:#a6b0b7; border-top-style:dashed; }
 
 .coordinate-readout {
   display: flex;

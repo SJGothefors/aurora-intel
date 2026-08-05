@@ -26,8 +26,8 @@
     "extractionTemperature": 0.1,
     "generationTemperature": 0.5,
     "seed": 4242,
-    "knowledgeTokenBudget": 1500,
-    "candidateCaseLimit": 40
+    "knowledgeTokenBudget": 900,
+    "candidateCaseLimit": 24
   },
   "map": {
     "minZoom": 4,

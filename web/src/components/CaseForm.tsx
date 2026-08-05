@@ -76,6 +76,10 @@ export function CaseForm({ value, vocabulary, submitLabel, busy, showRaw = true,
     <form className="case-form" onSubmit={(event) => { event.preventDefault(); normalizePosition(); onSubmit(); }}>
       <div className="form-section">
         <div className="form-section-heading"><span>1</span><strong>7S</strong></div>
+        <label className="form-span-2">
+          <span>{t('form.sourceReportId')}</span>
+          <input className="mono-input" value={value.source_report_id ?? ''} onChange={(event) => patch({ source_report_id: event.target.value || null })} />
+        </label>
         <label className={visuallyUncertain('stunden') ? 'field-uncertain' : ''}>
           <span>{t('form.time')}{visuallyUncertain('stunden') && <em>{t('intake.uncertain')}</em>}</span>
           <input value={value.dtg_raw ?? ''} onChange={(event) => patch({ dtg_raw: event.target.value || null })} placeholder="010632B AUG 26" />

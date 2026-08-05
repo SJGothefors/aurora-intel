@@ -6,6 +6,14 @@ AI:n ger utkast. En officer måste alltid kontrollera varje fält, bedömning oc
 
 ## USB-flöde på en frånkopplad dator
 
+| Steg | macOS | Windows |
+|---|---|---|
+| **1. Betrodd ansluten dator: skapa/exportera** | Kör `./scripts/prepare_release.sh` | Kör `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\prepare_release.ps1` |
+| **2. Frånkopplad dator: packa upp och bygg paketet** | Kopiera och packa upp lokalt; dubbelklicka `build.command` | Kopiera lokalt, välj **Extrahera alla**; dubbelklicka `build.bat` |
+| **3. Frånkopplad dator: starta** | Dubbelklicka `start.command` | Dubbelklicka `start.bat` |
+
+Vänta på `OK` efter steg 2. Använd sedan startfilen i steg 3.
+
 Du ska ha fått filen `aurora-intel-vX.Y.Z-offline.zip` från en betrodd releaseansvarig. En vanlig källkods-ZIP från Git innehåller inte den flera gigabyte stora modellen och fungerar inte. Modellen och ZIP-filen är större än FAT32 klarar; USB-minnet måste använda ett godkänt storfilsformat (vanligen exFAT för Mac/Windows) och uppackningen måste stödja ZIP64. Kontrollera releasehash/signatur och den betrodda nyckelns fingeravtryck via organisationens separata, godkända kanal — filer som levereras tillsammans bevisar inte ensamma avsändaren.
 
 ### macOS 13 eller senare
@@ -75,7 +83,7 @@ Tabellen och kartan visar samma filtrerade urval. Du kan:
 
 Markera eller håll pekaren över en rad för att markera karttecknet, och klicka ett karttecken för att öppna ärendet. Kartan använder en lokal, schematisk vektorkarta och får inte användas för navigation, gränstolkning, avstånd med operativ precision eller målangivelse. Pekarvisningen anger MGRS och WGS84 samtidigt.
 
-Aktör styr APP-6-färg/ram: Okänd, Misstänkt främmande, Civil eller Egen. Detta är en användarbedömning, inte en slutsats som får antas av symbolens utseende.
+Kartmarkören visar endast den användargranskade aktörsfärgen: gul Okänd, röd Misstänkt främmande, grön Civil eller blå Egen. Det kontrollerade begreppet visas bredvid färgrutan. Färgen bevisar inte identitet eller avsikt.
 
 ## Spaningsfrågor
 

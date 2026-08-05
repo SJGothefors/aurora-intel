@@ -43,7 +43,9 @@ const STATUSES: CaseStatus[] = ['Ny', 'Under bearbetning', 'Uppföljning', 'Avsl
 export function LedgerTable(props: LedgerTableProps) {
   const { t, i18n } = useTranslation();
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const columnMenuRef = useRef<HTMLDivElement | null>(null);
   const [showColumns, setShowColumns] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(0);
   const [visibility, setVisibility] = useState<VisibilityState>({
     actor: false, source: false, strength: false, tags: false, createdAt: false,
     updatedAt: false, createdBy: false, coordinates: false, counts: false,
@@ -216,7 +218,31 @@ export function LedgerTable(props: LedgerTableProps) {
     if (index >= 0) virtualizer.scrollToIndex(index, { align: 'auto' });
   }, [props.selectedId, rows, virtualizer]);
 
-  const tableWidth = table.getVisibleLeafColumns().reduce((sum, column) => sum + column.getSize(), 0);
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (!element) return;
+    const update = () => setViewportWidth(Math.floor(element.clientWidth));
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [props.cases.length]);
+
+  useEffect(() => {
+    if (!showColumns) return;
+    const close = (event: PointerEvent) => {
+      if (event.target instanceof Node && !columnMenuRef.current?.contains(event.target)) setShowColumns(false);
+    };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [showColumns]);
+
+  const visibleColumns = table.getVisibleLeafColumns();
+  const baseTableWidth = visibleColumns.reduce((sum, column) => sum + column.getSize(), 0);
+  const flexibleColumns = visibleColumns.filter((column) => !['select', 'star'].includes(column.id));
+  const extraColumnWidth = flexibleColumns.length ? Math.max(0, viewportWidth - baseTableWidth) / flexibleColumns.length : 0;
+  const tableWidth = Math.max(baseTableWidth, viewportWidth);
+  const displayColumnWidth = (id: string, size: number) => size + (flexibleColumns.some((column) => column.id === id) ? extraColumnWidth : 0);
 
   return (
     <section className="ledger-panel" aria-label={t('ledger.title')}>
@@ -251,7 +277,7 @@ export function LedgerTable(props: LedgerTableProps) {
               <option value="mgrs">{t('ledger.groupMgrs')}</option>
             </select>
           </label>
-          <div className="popover-anchor">
+          <div className="popover-anchor" ref={columnMenuRef}>
             <button className={`icon-text-button${showColumns ? ' is-active' : ''}`} type="button" onClick={() => setShowColumns((value) => !value)}><span aria-hidden="true">▥</span>{t('ledger.columns')}</button>
             {showColumns && (
               <div className="column-menu panel-float">
@@ -274,11 +300,11 @@ export function LedgerTable(props: LedgerTableProps) {
           </button>
         </div>
       ) : (
-        <div className="virtual-table" style={{ '--table-width': `${Math.max(tableWidth, 860)}px` } as React.CSSProperties}>
+        <div className="virtual-table" style={{ '--table-width': `${tableWidth}px` } as React.CSSProperties}>
           <div className="table-scroll" ref={scrollRef} role="table" aria-rowcount={props.cases.length}>
-            <div className="table-header" role="row" style={{ width: Math.max(tableWidth, 860) }}>
+            <div className="table-header" role="row" style={{ width: tableWidth }}>
               {table.getFlatHeaders().map((header) => (
-                <div className="table-header-cell" key={header.id} role="columnheader" style={{ width: header.getSize() }}>
+                <div className="table-header-cell" key={header.id} role="columnheader" style={{ width: displayColumnWidth(header.column.id, header.getSize()) }}>
                   {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   {header.column.getCanResize() && (
                     <span className={`column-resizer${header.column.getIsResizing() ? ' is-resizing' : ''}`} onMouseDown={header.getResizeHandler()} onTouchStart={header.getResizeHandler()} />
@@ -286,7 +312,7 @@ export function LedgerTable(props: LedgerTableProps) {
                 </div>
               ))}
             </div>
-            <div className="table-body" style={{ height: virtualizer.getTotalSize(), width: Math.max(tableWidth, 860) }}>
+            <div className="table-body" style={{ height: virtualizer.getTotalSize(), width: tableWidth }}>
               {virtualizer.getVirtualItems().map((virtualRow) => {
                 const row = rows[virtualRow.index];
                 const isGroup = row.getIsGrouped();
@@ -296,7 +322,7 @@ export function LedgerTable(props: LedgerTableProps) {
                       className="group-row"
                       key={row.id}
                       type="button"
-                      style={{ transform: `translateY(${virtualRow.start}px)`, height: virtualRow.size, width: Math.max(tableWidth, 860) }}
+                      style={{ transform: `translateY(${virtualRow.start}px)`, height: virtualRow.size, width: tableWidth }}
                       onClick={row.getToggleExpandedHandler()}
                     >
                       <span className="group-caret" aria-hidden="true">{row.getIsExpanded() ? '▾' : '▸'}</span>
@@ -324,7 +350,7 @@ export function LedgerTable(props: LedgerTableProps) {
                     onMouseLeave={() => props.onHover(null)}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <div className="table-cell" key={cell.id} role="cell" style={{ width: cell.column.getSize() }}>
+                      <div className="table-cell" key={cell.id} role="cell" style={{ width: displayColumnWidth(cell.column.id, cell.column.getSize()) }}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </div>
                     ))}

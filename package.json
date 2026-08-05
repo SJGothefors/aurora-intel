@@ -7,7 +7,9 @@
     "node": ">=24.18.1 <25"
   },
   "scripts": {
-    "dev": "npm --prefix web run dev",
+    "dev": "node scripts/dev-runner.mjs",
+    "dev:web": "npm --prefix web run dev",
+    "dev:ai": "node scripts/dev-runner.mjs --ai",
     "dev:server": "node --watch server/index.mjs",
     "build": "npm run build:web",
     "build:web": "npm --prefix web run build",
@@ -27,7 +29,6 @@
     "i18next": "25.10.10",
     "leaflet": "1.9.4",
     "mgrs": "2.2.0",
-    "milsymbol": "3.0.4",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-i18next": "15.7.4",

@@ -134,6 +134,12 @@
     "Egen": "Egen"
   },
   "map": {
+    "unspecified": "Ej specificerat",
+    "roads": "Större vägar",
+    "highways": "Motorvägar",
+    "water": "Sjöar och vattendrag",
+    "ground": "Mark",
+    "borders": "Landsgränser",
     "eyebrow": "LÄGESBILD",
     "title": "Nordiskt operationsområde",
     "missing": "{{count}} utan position",
@@ -189,6 +195,7 @@
     "newBlank": "Nytt tomt formulär"
   },
   "form": {
+    "sourceReportId": "Källrapportens tidsnummer",
     "time": "Stunden",
     "timeIso": "Normaliserad tid (UTC)",
     "place": "Stället",
@@ -353,7 +360,6 @@
     "density": "Täthet",
     "compact": "Kompakt",
     "comfortable": "Luftig",
-    "accent": "Accentfärg",
     "likelihood": "Sannolikhetsskala",
     "likelihoodHint": "Ett steg per rad, från lägst till högst sannolikhet.",
     "trigger": "Tröskel för spaningsfrågor",
@@ -389,7 +395,7 @@
     "nameEn": "Engelskt namn",
     "definition": "Definition",
     "sidc": "Symbolkod (SIDC)",
-    "symbol": "APP-6-symbol",
+    "symbol": "Markör",
     "order": "Ordning",
     "moveUp": "Flytta upp",
     "moveDown": "Flytta ned",
