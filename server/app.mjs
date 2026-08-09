@@ -22,6 +22,7 @@ import { KnowledgeSelector } from './ai/knowledge.mjs';
 import { AIService } from './ai/service.mjs';
 import { AIJobQueue } from './ai/jobs.mjs';
 import { boundedText, INPUT_LIMITS } from './validation.mjs';
+import { createWeather, deleteWeather, listWeather } from './weather.mjs';
 
 const MAX_BODY = 16 * 1024 * 1024;
 const MAX_IMPORT_PREVIEWS = 1;
@@ -237,7 +238,7 @@ export function validateSettingsPatch(patch, current, paths) {
   }
   assert(next.appPort !== next.llmPort, 'PORT_CONFLICT', 'The application and local-model ports must differ.');
   if (patch.lang !== undefined) assert(['sv', 'en'].includes(patch.lang), 'INVALID_LANGUAGE', 'The language is invalid.');
-  if (patch.theme !== undefined) assert(['dark', 'light'].includes(patch.theme), 'INVALID_THEME', 'The theme is invalid.');
+  if (patch.theme !== undefined) assert(patch.theme === 'dark', 'INVALID_THEME', 'Aurora uses dark mode only.');
   if (patch.density !== undefined) assert(['compact', 'comfortable'].includes(patch.density), 'INVALID_DENSITY', 'The display density is invalid.');
   if (patch.accent !== undefined) {
     normalized.accent = boundedText(patch.accent, 'accent', 32, { required: true });
@@ -286,8 +287,11 @@ export function createAuroraApp(options = {}) {
 
   const afterCaseWrite = () => {
     refreshCsvMirror(db, paths);
-    jobs.scheduleQuestions({ language: getSettings(db, config).lang ?? config.lang });
+    const language = getSettings(db, config).lang ?? config.lang;
+    jobs.scheduleQuestions({ language });
+    jobs.scheduleOverview({ language });
   };
+  jobs.scheduleOverview({ language: getSettings(db, config).lang ?? config.lang });
 
   async function api(request, response, url) {
     const method = request.method ?? 'GET';
@@ -309,6 +313,17 @@ export function createAuroraApp(options = {}) {
     if (method === 'GET' && pathname === '/api/llm/status') return sendJson(response, 200, await llm.status());
     if (method === 'GET' && pathname === '/api/llm/models') {
       return sendJson(response, 200, { files: discoverModelFiles(paths.modelsDir), server: await llm.status(), selected: getSettings(db, config).modelPath ?? config.modelPath ?? null });
+    }
+    if (method === 'GET' && pathname === '/api/weather') return sendJson(response, 200, { rows: listWeather(db) });
+    if (method === 'POST' && pathname === '/api/weather') {
+      const created = createWeather(db, await readBody(request));
+      jobs.scheduleOverview({ language: getSettings(db, config).lang ?? config.lang });
+      return sendJson(response, 201, created);
+    }
+    if ((params = matchPath(pathname, '/api/weather/:id')) && method === 'DELETE') {
+      const removed = deleteWeather(db, params.id);
+      jobs.scheduleOverview({ language: getSettings(db, config).lang ?? config.lang });
+      return sendJson(response, 200, removed);
     }
 
     if (method === 'GET' && pathname === '/api/cases') return sendJson(response, 200, listCases(db, query));
@@ -408,6 +423,8 @@ export function createAuroraApp(options = {}) {
     }
 
     if (method === 'GET' && pathname === '/api/ai/jobs') return sendJson(response, 200, { rows: jobs.list(query) });
+    if (method === 'GET' && pathname === '/api/analysis/latest') return sendJson(response, 200, { job: jobs.latest('overview') });
+    if (method === 'POST' && pathname === '/api/analysis/refresh') return sendJson(response, 202, jobs.enqueue('overview', await readBody(request)));
     if (method === 'POST' && pathname === '/api/ai/jobs') {
       const body = await readBody(request);
       return sendJson(response, 202, jobs.enqueue(body.type, body.payload ?? {}));
@@ -453,6 +470,7 @@ export function createAuroraApp(options = {}) {
       imports.delete(body.token);
       refreshCsvMirror(db, paths);
       jobs.scheduleQuestions({ language: getSettings(db, config).lang ?? config.lang });
+      jobs.scheduleOverview({ language: getSettings(db, config).lang ?? config.lang });
       return sendJson(response, 200, result);
     }
 
@@ -481,8 +499,9 @@ export function createAuroraApp(options = {}) {
         db.prepare('DELETE FROM notes').run();
         db.prepare('DELETE FROM spaningsfragor').run();
         db.prepare('DELETE FROM cases').run();
+        db.prepare('DELETE FROM weather_entries').run();
         db.prepare('DELETE FROM ai_jobs').run();
-        db.prepare("DELETE FROM sqlite_sequence WHERE name IN ('cases', 'spaningsfragor', 'notes', 'ai_jobs')").run();
+        db.prepare("DELETE FROM sqlite_sequence WHERE name IN ('cases', 'spaningsfragor', 'notes', 'weather_entries', 'ai_jobs')").run();
       });
       refreshCsvMirror(db, paths);
       return sendJson(response, 200, { cleared: true });

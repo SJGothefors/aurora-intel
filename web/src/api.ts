@@ -11,6 +11,8 @@ import type {
   Settings,
   Note,
   VocabularyTerm,
+  WeatherEntry,
+  AnalysisJob,
 } from './types';
 
 const API_ROOT = '/api';
@@ -81,6 +83,21 @@ export const api = {
   },
   deleteCase(id: IntelCase['id']): Promise<void> {
     return request(`/cases/${encodeURIComponent(String(id))}`, { method: 'DELETE' });
+  },
+  async getWeather(): Promise<WeatherEntry[]> {
+    return unwrapList<WeatherEntry>(await request<unknown>('/weather'), ['rows']);
+  },
+  createWeather(input: Partial<WeatherEntry>): Promise<WeatherEntry> {
+    return request('/weather', { method: 'POST', body: JSON.stringify(input) });
+  },
+  deleteWeather(id: WeatherEntry['id']): Promise<void> {
+    return request(`/weather/${encodeURIComponent(String(id))}`, { method: 'DELETE' });
+  },
+  async getLatestAnalysis(): Promise<AnalysisJob | null> {
+    return (await request<{ job: AnalysisJob | null }>('/analysis/latest')).job;
+  },
+  refreshAnalysis(lang: string): Promise<AnalysisJob> {
+    return request('/analysis/refresh', { method: 'POST', body: JSON.stringify({ language: lang }) });
   },
   addNote(entityType: NoteEntity, entityId: string | number, text: string) {
     return request<Note>(`/notes`, {

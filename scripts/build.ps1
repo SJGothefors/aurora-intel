@@ -105,7 +105,7 @@ try {
     $errLog = Join-Path $data 'logs\build-self-test.err.log'
     Reset-AuroraLogFile $outLog
     Reset-AuroraLogFile $errLog
-    $llamaArgs = @('--host','127.0.0.1','--port',$llmPort,'--model',('"{0}"' -f $model),'--ctx-size',(Get-AuroraConfig $root 'llm.contextSize' $node),'--seed',(Get-AuroraConfig $root 'llm.seed' $node),'--n-gpu-layers','0')
+    $llamaArgs = @('--host','127.0.0.1','--port',$llmPort,'--model',('"{0}"' -f $model),'--ctx-size',(Get-AuroraConfig $root 'llm.contextSize' $node),'--parallel','1','--seed',(Get-AuroraConfig $root 'llm.seed' $node),'--n-gpu-layers','0')
     $apiKey = (& $node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))').Trim()
     if ($LASTEXITCODE -ne 0 -or $apiKey -notmatch '^[0-9a-f]{64}$') { Stop-Aurora 'Kunde inte skapa lokal LLM-nyckel. / Could not generate the local LLM key.' }
     Write-AuroraInfo 'Startar lokalt LLM-självtest ... / Starting local LLM self-test ...'

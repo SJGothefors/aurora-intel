@@ -39,14 +39,16 @@ function headedSection(markdown, key) {
 
 export class PromptStore {
   constructor(docsDir) {
-    this.filename = path.join(docsDir, 'PROMPTS.md');
+    this.filenames = [path.join(docsDir, 'technical', 'PROMPTS.md'), path.join(docsDir, 'PROMPTS.md')];
   }
 
   load(key) {
     const normalized = String(key).toUpperCase();
     let markdown = '';
-    try { markdown = fs.readFileSync(this.filename, 'utf8'); } catch (error) {
-      if (error?.code !== 'ENOENT') throw error;
+    for (const filename of this.filenames) {
+      try { markdown = fs.readFileSync(filename, 'utf8'); break; } catch (error) {
+        if (error?.code !== 'ENOENT') throw error;
+      }
     }
     return markedSection(markdown, normalized) ?? headedSection(markdown, normalized) ?? FALLBACKS[normalized];
   }

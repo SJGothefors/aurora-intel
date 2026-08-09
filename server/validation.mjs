@@ -13,6 +13,8 @@ export const INPUT_LIMITS = Object.freeze({
     sysselsattning: 32 * 1024,
     symbol: 2 * 1024,
     sagesman: 2 * 1024,
+    activity_summary: 512,
+    traits_summary: 512,
     kallrapport_raw: 256 * 1024,
     bedomning: 64 * 1024,
     ai_json: 512 * 1024,

@@ -50,15 +50,15 @@ export const QUESTIONS_SCHEMA = Object.freeze({
   type: 'object', additionalProperties: false, required: ['proposals'],
   properties: {
     proposals: {
-      type: 'array', maxItems: 5,
+      type: 'array', maxItems: 3,
       items: {
         type: 'object', additionalProperties: false,
         required: ['question', 'motivering', 'prioritet', 'linked_case_ids', 'forslag_inhamtning'],
         properties: {
-          question: { type: 'string' }, motivering: { type: 'string' },
+          question: { type: 'string', maxLength: 120 }, motivering: { type: 'string', maxLength: 160 },
           prioritet: { type: 'string', enum: ['Hög', 'Medel', 'Låg'] },
           linked_case_ids: { type: 'array', items: { type: 'integer' }, uniqueItems: true },
-          forslag_inhamtning: { type: 'string' },
+          forslag_inhamtning: { type: 'string', maxLength: 140 },
         },
       },
     },
@@ -68,13 +68,13 @@ export const QUESTIONS_SCHEMA = Object.freeze({
 export const QA_SCHEMA = Object.freeze({
   type: 'object', additionalProperties: false, required: ['answer', 'cited_case_ids', 'pattern'],
   properties: {
-    answer: { type: 'string' },
+    answer: { type: 'string', maxLength: 1200 },
     cited_case_ids: { type: 'array', items: { type: 'integer' }, uniqueItems: true },
     pattern: {
       type: 'object', additionalProperties: false, required: ['type', 'description'],
       properties: {
         type: { type: ['string', 'null'], enum: ['cluster', 'route', 'trend', null] },
-        description: nullableString,
+        description: { type: ['string', 'null'], maxLength: 360 },
       },
     },
   },
@@ -84,8 +84,8 @@ export const ASSESSMENT_SCHEMA = Object.freeze({
   type: 'object', additionalProperties: false,
   required: ['fakta', 'bedomning', 'sannolikhet', 'motivering', 'rekommendation'],
   properties: {
-    fakta: { type: 'string' }, bedomning: { type: 'string' }, sannolikhet: { type: 'string' },
-    motivering: { type: 'string' }, rekommendation: { type: 'string' },
+    fakta: { type: 'string', maxLength: 360 }, bedomning: { type: 'string', maxLength: 440 }, sannolikhet: { type: 'string', maxLength: 80 },
+    motivering: { type: 'string', maxLength: 360 }, rekommendation: { type: 'string', maxLength: 320 },
   },
 });
 

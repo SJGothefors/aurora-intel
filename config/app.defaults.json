@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "appVersion": "1.0.0",
+  "appVersion": "0.1.0-alpha",
   "bindAddress": "127.0.0.1",
   "appPort": 8474,
   "llmPort": 8475,
@@ -24,10 +24,10 @@
   "llm": {
     "contextSize": 8192,
     "extractionTemperature": 0.1,
-    "generationTemperature": 0.5,
+    "generationTemperature": 0.2,
     "seed": 4242,
-    "knowledgeTokenBudget": 900,
-    "candidateCaseLimit": 24
+    "knowledgeTokenBudget": 600,
+    "candidateCaseLimit": 16
   },
   "map": {
     "minZoom": 4,

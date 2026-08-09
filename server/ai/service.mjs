@@ -2,6 +2,7 @@ import { AppError, assert } from '../errors.mjs';
 import { listCases, parseArray } from '../cases.mjs';
 import { createQuestion, getSettings, listQuestions } from '../entities.mjs';
 import { listVocabulary } from '../vocabulary.mjs';
+import { listWeather } from '../weather.mjs';
 import { SCHEMAS } from './schemas.mjs';
 import { extractCompleteLabeled7S, extractionReportToCase, postprocessExtraction, sanitizeAssessment, sanitizeQa, sanitizeQuestions } from './postprocess.mjs';
 
@@ -19,6 +20,7 @@ function collectionCase(row) {
     slag: row.slag, sysselsattning: row.sysselsattning, begrepp: row.begrepp,
     aktor: row.aktor, star: row.star,
     source_report_id: row.source_report_id,
+    source_assessment: row.source_assessment,
   };
 }
 
@@ -50,7 +52,9 @@ function evidenceCase(row, question) {
     count_max: row.count_max,
     slag: row.slag,
     sysselsattning: row.sysselsattning,
+    activity_summary: row.activity_summary,
     symbol: row.symbol,
+    traits_summary: row.traits_summary,
     sagesman: row.sagesman,
     tags: row.tags,
     begrepp: row.begrepp,
@@ -129,6 +133,7 @@ export class AIService {
     if (type === 'questions') return this.questions(payload, signal);
     if (type === 'qa') return this.qa(payload, signal);
     if (type === 'assessment') return this.assessment(payload, signal);
+    if (type === 'overview') return this.overview(payload, signal);
     throw new AppError('INVALID_JOB_TYPE', 'The AI job type is invalid.');
   }
 
@@ -196,7 +201,7 @@ export class AIService {
   }
 
   async questions(payload = {}, signal) {
-    const caseLimit = Math.max(20, Math.min(500, Number(this.config.aiQuestionCaseLimit) || 120));
+    const caseLimit = Math.max(12, Math.min(80, Number(this.config.aiQuestionCaseLimit) || 40));
     const cases = listCases(this.db, { ...payload.filters, limit: caseLimit, sort: 'time_utc', direction: 'desc' }).rows;
     assert(cases.length > 0, 'NO_CASES', 'At least one case is required for collection-question generation.');
     const existing = listQuestions(this.db).map((item) => ({ id: item.id, question: item.question, status: item.status }));
@@ -217,7 +222,7 @@ export class AIService {
     const raw = await this.llm.chatJson({
       schema: SCHEMAS.questions, schemaName: 'aurora_collection_questions',
       messages: [this.systemMessage(), { role: 'user', content: JSON.stringify(user) }],
-      temperature: Number(this.config.llm?.generationTemperature) || 0.5, seed: this.seed(), maxTokens: 600, signal,
+      temperature: Math.min(0.25, Number(this.config.llm?.generationTemperature) || 0.2), seed: this.seed(), maxTokens: 480, signal,
     });
     const result = sanitizeQuestions(raw, cases.map((item) => item.id));
     const existingText = new Set(existing.map((item) => item.question.trim().toLocaleLowerCase('sv-SE')));
@@ -243,7 +248,7 @@ export class AIService {
     });
     const activeVocabulary = listVocabulary(this.db, { active: true }).map((entry) => entry.name_sv);
     const context = currentContext(payload);
-    const evidence = serializeEvidence(candidates, question, 12_000);
+    const evidence = serializeEvidence(candidates, question, 6_000);
     candidates = evidence.rows;
     const caseLines = evidence.lines;
     const user = {
@@ -258,7 +263,7 @@ export class AIService {
     const raw = await this.llm.chatJson({
       schema: SCHEMAS.qa, schemaName: 'aurora_qa',
       messages: [this.systemMessage(), { role: 'user', content: JSON.stringify(user) }],
-      temperature: 0.3, seed: this.seed(), maxTokens: 600, signal,
+      temperature: 0.2, seed: this.seed(), maxTokens: 280, signal,
     });
     return sanitizeQa(raw, candidates.map((item) => item.id));
   }
@@ -276,6 +281,8 @@ export class AIService {
     const settings = getSettings(this.db, this.config);
     const likelihoodScale = settings.likelihoodScale ?? this.config.likelihoodScale
       ?? ['mycket osannolikt', 'osannolikt', 'möjligt', 'sannolikt', 'mycket sannolikt'];
+    const assessmentSchema = structuredClone(SCHEMAS.assessment);
+    assessmentSchema.properties.sannolikhet.enum = likelihoodScale;
     const knowledge = this.knowledge.select({
       question: payload.focus, begrepp: rows.flatMap((row) => row.begrepp), aktor: rows.map((row) => row.aktor),
     });
@@ -283,20 +290,32 @@ export class AIService {
     const context = currentContext(payload);
     const evidence = serializeEvidence(rows, payload.focus, 24_000);
     const caseLines = evidence.lines;
+    const weather = listWeather(this.db).map(({ id, created_at, updated_at, ...entry }) => entry);
     const user = {
       task: this.taskPrompt('A5', {
         CURRENT_DATETIME: context.current_time_utc, LOCAL_TIMEZONE: context.local_timezone,
         UI_LANGUAGE: context.ui_language, LIKELIHOOD_SCALE_JSON: likelihoodScale,
         ACTIVE_BEGREPP_JSON: activeVocabulary, KNOWLEDGE_EXCERPTS: knowledge, CASE_JSON_LINES: caseLines,
       }),
-      context, active_begrepp: activeVocabulary, likelihood_scale: likelihoodScale,
-      untrusted_data_policy: UNTRUSTED_DATA_POLICY, cases_jsonl_untrusted: caseLines, knowledge,
+      context, untrusted_data_policy: UNTRUSTED_DATA_POLICY, cases_jsonl_untrusted: caseLines,
+      manual_weather_untrusted: weather,
+      weather_rule: 'Weather is optional manual data. If absent, do not infer weather. If present, separate its possible operational effect from observed facts.',
     };
     const raw = await this.llm.chatJson({
-      schema: SCHEMAS.assessment, schemaName: 'aurora_assessment',
+      schema: assessmentSchema, schemaName: 'aurora_assessment',
       messages: [this.systemMessage(), { role: 'user', content: JSON.stringify(user) }],
-      temperature: 0.4, seed: this.seed(), maxTokens: 500, signal,
+      temperature: 0.2, seed: this.seed(), maxTokens: 650, signal,
     });
     return sanitizeAssessment(raw, likelihoodScale);
+  }
+
+  async overview(payload = {}, signal) {
+    const rows = this.db.prepare('SELECT id FROM cases ORDER BY COALESCE(time_utc, created_at) DESC, id DESC LIMIT 40').all();
+    assert(rows.length >= 3, 'TOO_FEW_CASES', 'At least three cases are required for an intelligence overview.', { status: 409 });
+    return this.assessment({
+      ...payload,
+      case_ids: rows.map((row) => row.id),
+      focus: payload.focus ?? 'Samlad lägesbedömning, förändringar, möjliga motståndaraktiviteter och prioriterade spaningsfrågor.',
+    }, signal);
   }
 }

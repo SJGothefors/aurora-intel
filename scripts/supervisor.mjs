@@ -190,6 +190,7 @@ function spawnLlama() {
     "--port", options["llm-port"],
     "--model", path.resolve(options.model),
     "--ctx-size", options["context-size"] ?? "8192",
+    "--parallel", "1",
     "--seed", options.seed ?? "4242",
     "--n-gpu-layers", isWindows ? "0" : "99"
   ];

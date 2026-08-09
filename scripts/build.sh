@@ -108,7 +108,7 @@ aurora_prepare_log_file "$self_log"
 api_key=$("$node_bin" -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')
 [ ${#api_key} -eq 64 ] || aurora_die "Kunde inte skapa lokal LLM-nyckel. / Could not generate the local LLM key."
 aurora_info "Startar lokalt LLM-självtest (det kan ta några minuter) ... / Starting local LLM self-test (this can take a few minutes) ..."
-LLAMA_API_KEY="$api_key" "$llama_bin" --host 127.0.0.1 --port "$llm_port" --model "$model" --ctx-size "$(aurora_config_get llm.contextSize "$node_bin")" --seed "$(aurora_config_get llm.seed "$node_bin")" --n-gpu-layers 99 >"$self_log" 2>&1 &
+LLAMA_API_KEY="$api_key" "$llama_bin" --host 127.0.0.1 --port "$llm_port" --model "$model" --ctx-size "$(aurora_config_get llm.contextSize "$node_bin")" --parallel 1 --seed "$(aurora_config_get llm.seed "$node_bin")" --n-gpu-layers 99 >"$self_log" 2>&1 &
 self_pid=$!
 cleanup_self_test() {
   if [ -n "$self_pid" ]; then

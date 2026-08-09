@@ -19,6 +19,9 @@ test('prompts and knowledge are hot-reloaded with runtime substitutions', (t) =>
   assert.equal(prompts.render('A1', { CURRENT_DATETIME: '2026-08-01', RAW_REPORT_TEXT: 'värde $&' }), 'Tid 2026-08-01 text värde $&');
   fs.writeFileSync(path.join(docs, 'PROMPTS.md'), '<!-- AURORA:A1:START -->Ny {{RAW_REPORT_TEXT}}<!-- AURORA:A1:END -->');
   assert.equal(prompts.render('A1', { RAW_REPORT_TEXT: 'rapport' }), 'Ny rapport');
+  fs.mkdirSync(path.join(docs, 'technical'));
+  fs.writeFileSync(path.join(docs, 'technical', 'PROMPTS.md'), '<!-- AURORA:A1:START -->Teknisk {{RAW_REPORT_TEXT}}<!-- AURORA:A1:END -->');
+  assert.equal(prompts.render('A1', { RAW_REPORT_TEXT: 'källa' }), 'Teknisk källa');
 
   fs.writeFileSync(path.join(knowledge, 'und_grund.md'), 'Grundläggande underrättelsemetodik.');
   const actorFile = path.join(knowledge, 'aktor_test.md');

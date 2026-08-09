@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, describeError } from './api';
 import type {
@@ -15,23 +15,27 @@ import type {
   PanelTab,
   Settings,
   VocabularyTerm,
+  WeatherEntry,
+  AnalysisJob,
 } from './types';
 import { DEFAULT_FILTERS, DEFAULT_SETTINGS } from './types';
-import { activeFilterCount, clamp } from './utils';
-import { AiQueue } from './components/AiQueue';
-import { AskPanel } from './components/AskPanel';
-import { CaseDetail } from './components/CaseDetail';
-import { FiltersBar } from './components/FiltersBar';
-import { IntakePanel } from './components/IntakePanel';
-import { LedgerTable } from './components/LedgerTable';
-import { MapPanel } from './components/MapPanel';
-import { Modal } from './components/Modal';
-import { PositionDialog } from './components/PositionDialog';
-import { QuestionsPanel } from './components/QuestionsPanel';
-import { SettingsDialog } from './components/SettingsDialog';
-import { ShortcutsDialog } from './components/ShortcutsDialog';
-import { TransferDialog } from './components/TransferDialog';
-import { VocabularyDialog } from './components/VocabularyDialog';
+import { activeFilterCount } from './utils';
+import { AiQueue } from './features/analysis/AiQueue';
+import { AnalysisPanel } from './features/analysis/AnalysisPanel';
+import { AskPanel } from './features/analysis/AskPanel';
+import { QuestionsPanel } from './features/analysis/QuestionsPanel';
+import { CaseDetail } from './features/cases/CaseDetail';
+import { IntakePanel } from './features/cases/IntakePanel';
+import { LedgerTable } from './features/cases/LedgerTable';
+import { PositionDialog } from './features/cases/PositionDialog';
+import { MapPanel } from './features/map/MapPanel';
+import { WeatherStrip } from './features/map/WeatherStrip';
+import { SettingsDialog } from './features/settings/SettingsDialog';
+import { TransferDialog } from './features/settings/TransferDialog';
+import { VocabularyDialog } from './features/settings/VocabularyDialog';
+import { Modal } from './components/common/Modal';
+import { FiltersBar } from './components/navigation/FiltersBar';
+import { ShortcutsDialog } from './components/navigation/ShortcutsDialog';
 
 type Bounds = { north: number; south: number; east: number; west: number };
 
@@ -64,7 +68,6 @@ function normalizeQuestion(item: CollectionQuestion): CollectionQuestion {
 export function App() {
   const { t, i18n } = useTranslation();
   const searchRef = useRef<HTMLInputElement | null>(null);
-  const splitRef = useRef<HTMLDivElement | null>(null);
   const [cases, setCases] = useState<IntelCase[]>([]);
   const [vocabulary, setVocabulary] = useState<VocabularyTerm[]>([]);
   const [questions, setQuestions] = useState<CollectionQuestion[]>([]);
@@ -72,6 +75,8 @@ export function App() {
   const [models, setModels] = useState<string[]>([]);
   const [llm, setLlm] = useState<LlmStatus>({ status: 'starting' });
   const [jobs, setJobs] = useState<AiJob[]>([]);
+  const [weather, setWeather] = useState<WeatherEntry[]>([]);
+  const [analysis, setAnalysis] = useState<AnalysisJob | null>(null);
   const [filters, setFilters] = useState<CaseFilters>(DEFAULT_FILTERS);
   const [groupBy, setGroupBy] = useState('');
   const [mapBounds, setMapBounds] = useState<Bounds | null>(null);
@@ -81,10 +86,9 @@ export function App() {
   const [citedIds, setCitedIds] = useState<Array<IntelCase['id']>>([]);
   const [answer, setAnswer] = useState<AskAnswer | null>(null);
   const [panelTab, setPanelTab] = useState<PanelTab>('intake');
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [dialog, setDialog] = useState<AppDialog>(null);
   const [positionCase, setPositionCase] = useState<IntelCase | null>(null);
-  const [split, setSplit] = useState(57);
   const [loading, setLoading] = useState(true);
   const [apiOffline, setApiOffline] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -104,35 +108,38 @@ export function App() {
 
   const loadAll = useCallback(async () => {
     setLoading(true);
-    const [caseResult, vocabularyResult, questionResult, settingsResult, statusResult, modelResult, jobResult] = await Promise.allSettled([
-      api.getCases(), api.getVocabulary(), api.getCollectionQuestions(), api.getSettings(), api.getLlmStatus(), api.getModels(), api.getJobs(),
+    const [caseResult, vocabularyResult, questionResult, settingsResult, statusResult, modelResult, jobResult, weatherResult, analysisResult] = await Promise.allSettled([
+      api.getCases(), api.getVocabulary(), api.getCollectionQuestions(), api.getSettings(), api.getLlmStatus(), api.getModels(), api.getJobs(), api.getWeather(), api.getLatestAnalysis(),
     ]);
     if (caseResult.status === 'fulfilled') { setCases(caseResult.value.map(normalizeCase)); setApiOffline(false); } else { setApiOffline(true); }
     if (vocabularyResult.status === 'fulfilled') setVocabulary(vocabularyResult.value);
     if (questionResult.status === 'fulfilled') setQuestions(questionResult.value.map(normalizeQuestion));
     if (settingsResult.status === 'fulfilled') {
-      const next = { ...DEFAULT_SETTINGS, ...settingsResult.value };
+      const next = { ...DEFAULT_SETTINGS, ...settingsResult.value, theme: 'dark' as const };
       setSettings(next);
       await i18n.changeLanguage(next.lang);
     }
     setLlm(statusResult.status === 'fulfilled' ? statusResult.value : { status: 'offline' });
     if (modelResult.status === 'fulfilled') setModels(modelResult.value);
     if (jobResult.status === 'fulfilled') setJobs(jobResult.value);
+    if (weatherResult.status === 'fulfilled') setWeather(weatherResult.value);
+    if (analysisResult.status === 'fulfilled') setAnalysis(analysisResult.value);
     setLoading(false);
   }, [i18n]);
 
   useEffect(() => { void loadAll(); }, [loadAll]);
   useEffect(() => {
     const id = window.setInterval(async () => {
-      const [statusResult, jobsResult] = await Promise.allSettled([api.getLlmStatus(), api.getJobs()]);
+      const [statusResult, jobsResult, analysisResult] = await Promise.allSettled([api.getLlmStatus(), api.getJobs(), api.getLatestAnalysis()]);
       setLlm(statusResult.status === 'fulfilled' ? statusResult.value : { status: 'offline' });
       if (jobsResult.status === 'fulfilled') setJobs(jobsResult.value);
+      if (analysisResult.status === 'fulfilled') setAnalysis(analysisResult.value);
     }, 5000);
     return () => window.clearInterval(id);
   }, []);
   useEffect(() => {
     document.documentElement.lang = settings.lang;
-    document.documentElement.dataset.theme = settings.theme;
+    document.documentElement.dataset.theme = 'dark';
     document.documentElement.dataset.density = settings.density;
     document.documentElement.style.setProperty('--accent', settings.accent || '#f0568c');
   }, [settings]);
@@ -268,7 +275,8 @@ export function App() {
 
   const saveSettings = async (next: Settings) => {
     try {
-      const saved = { ...next, ...await api.updateSettings(next) };
+      const enforced = { ...next, theme: 'dark' as const };
+      const saved = { ...enforced, ...await api.updateSettings(enforced), theme: 'dark' as const };
       setSettings(saved);
       await i18n.changeLanguage(saved.lang);
       notify(t('toast.settingsSaved'));
@@ -320,16 +328,14 @@ export function App() {
   const openCase = (item: IntelCase) => setSelectedId(item.id);
   const openIntake = () => { setPanelTab('intake'); setPanelOpen(true); };
   const openMissing = () => setFilters((current) => ({ ...current, missingPosition: true }));
-  const onSplitterDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const container = splitRef.current;
-    if (!container) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    const move = (moveEvent: PointerEvent) => {
-      const rect = container.getBoundingClientRect();
-      setSplit(clamp(((moveEvent.clientX - rect.left) / rect.width) * 100, 35, 72));
-    };
-    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
-    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  const addWeather = async (entry: Partial<WeatherEntry>) => {
+    try { await api.createWeather(entry); setWeather(await api.getWeather()); } catch (error) { reportError(describeError(error)); throw error; }
+  };
+  const removeWeather = async (id: WeatherEntry['id']) => {
+    try { await api.deleteWeather(id); setWeather(await api.getWeather()); } catch (error) { reportError(describeError(error)); throw error; }
+  };
+  const refreshAnalysis = async () => {
+    try { setAnalysis(await api.refreshAnalysis(i18n.language)); } catch (error) { reportError(describeError(error)); }
   };
 
   useEffect(() => {
@@ -348,18 +354,17 @@ export function App() {
   }, [dialog, selectedCase, selectedId, updateCase]);
 
   return (
-    <div className="app-shell" style={{ '--split': `${split}%` } as CSSProperties}>
+    <div className="app-shell">
       <div className="classification-banner"><span className="banner-mark" aria-hidden="true" />{settings.bannerText || t('app.classification')}<span className="banner-local"><i />{t('app.localOnly')}</span></div>
       <header className="topbar">
-        <button className="wordmark" type="button" onClick={() => { setFilters(DEFAULT_FILTERS); setSelectedId(null); }}><span className="wordmark-a">A</span><span><strong>{t('app.name')}</strong><small>{t('app.subtitle')}</small></span></button>
-        <label className="global-search"><span className="global-search-label">{t('header.searchLabel')}</span><input ref={searchRef} value={filters.query} onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))} placeholder={t('header.searchPlaceholder')} aria-label={t('header.searchLabel')} />{searchPending && <i className="search-progress" role="status" title={t('header.searching')} />}<span className="search-shortcut" aria-hidden="true">/</span>{filters.query && <button type="button" aria-label={t('intake.clear')} onClick={() => setFilters((current) => ({ ...current, query: '' }))}>×</button>}</label>
+        <button className="wordmark" type="button" onClick={() => { setFilters(DEFAULT_FILTERS); setSelectedId(null); }}><img src="/assets/brand/aurora-mark.png" alt="" /><span><strong>AURORA</strong><small>INTELLIGENCE LEDGER</small></span></button>
+        <label className="global-search"><span className="global-search-label">{t('header.searchLabel')}</span><input ref={searchRef} value={filters.query} onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))} placeholder={t('header.searchPlaceholder')} aria-label={t('header.searchLabel')} />{searchPending && <i className="search-progress" role="status" title={t('header.searching')} />}{filters.query && <button type="button" aria-label={t('intake.clear')} onClick={() => setFilters((current) => ({ ...current, query: '' }))}>×</button>}</label>
         <div className="topbar-actions">
           <button className={`llm-status status-${llm.status}`} type="button" title={llm.detail ?? t(`llm.${llm.status}`)} onClick={() => setDialog('settings')}><i /><span><small>{t('llm.label')}</small><strong>{t(`llm.${llm.status}`)}</strong></span></button>
           <button className="new-case-button" type="button" onClick={openIntake}><span aria-hidden="true">＋</span>{t('header.newCase')}<kbd>N</kbd></button>
           <button className="icon-button top-icon" type="button" title={t('header.importExport')} aria-label={t('header.importExport')} onClick={() => setDialog('importExport')}><span aria-hidden="true">⇅</span></button>
           <button className="icon-button top-icon" type="button" title={t('header.vocabulary')} aria-label={t('header.vocabulary')} onClick={() => setDialog('vocabulary')}><span aria-hidden="true">≣</span></button>
           <button className="language-button" type="button" title={t('header.toggleLanguage')} aria-label={t('header.toggleLanguage')} onClick={() => void saveSettings({ ...settings, lang: settings.lang === 'sv' ? 'en' : 'sv' })}>{settings.lang.toUpperCase()}</button>
-          <button className="icon-button top-icon" type="button" title={t('header.toggleTheme')} aria-label={t('header.toggleTheme')} onClick={() => void saveSettings({ ...settings, theme: settings.theme === 'dark' ? 'light' : 'dark' })}><span aria-hidden="true">◐</span></button>
           <button className="icon-button top-icon" type="button" title={t('header.settings')} aria-label={t('header.settings')} onClick={() => setDialog('settings')}><span aria-hidden="true">⚙</span></button>
         </div>
       </header>
@@ -367,7 +372,7 @@ export function App() {
       {apiOffline && <div className="api-offline-banner"><span aria-hidden="true">!</span><p>{t('app.offlineApi')}</p><button type="button" onClick={() => void loadAll()}>{t('app.retry')}</button></div>}
 
       <main className={`main-layout${panelOpen ? '' : ' panel-collapsed'}`}>
-        <div className="split-workspace" ref={splitRef}>
+        <div className="split-workspace">
           <div className="split-pane ledger-side">
             <LedgerTable
               cases={filteredCases}
@@ -392,13 +397,17 @@ export function App() {
               onAssessSelection={() => void assessSelection()}
             />
           </div>
-          <div className="splitter" role="separator" aria-orientation="vertical" aria-label={t('ledger.resize')} onPointerDown={onSplitterDown}><i /><i /><i /></div>
-          <div className="split-pane map-side">
-            <MapPanel cases={filteredCases} theme={settings.theme} selectedId={selectedId} hoveredId={hoveredId} citedIds={citedIds} answerPattern={answer?.pattern} onSelect={openCase} onHover={setHoveredId} onExtentChange={setMapBounds} onShowMissing={openMissing} />
+          <div className="split-pane intel-side">
+            <div className="map-side">
+              <WeatherStrip entries={weather} onAdd={addWeather} onDelete={removeWeather} />
+              <MapPanel cases={filteredCases} theme="dark" selectedId={selectedId} hoveredId={hoveredId} citedIds={citedIds} answerPattern={answer?.pattern} onSelect={openCase} onHover={setHoveredId} onExtentChange={setMapBounds} onShowMissing={openMissing} />
+            </div>
+            <AnalysisPanel caseCount={cases.length} llm={llm} job={analysis} questions={questions} onRefresh={() => void refreshAnalysis()} />
           </div>
         </div>
 
-        <aside className="work-panel" aria-label={t('panel.workspace')}>
+        {panelOpen && <button className="work-panel-scrim" type="button" aria-label={t('app.close')} onClick={() => setPanelOpen(false)} />}
+        <aside className={`work-panel${panelOpen ? ' is-open' : ''}`} aria-label={t('panel.workspace')}>
           <div className="work-panel-tabs" role="tablist">
             {(['intake', 'ask', 'questions'] as const).map((tab) => <button key={tab} type="button" role="tab" aria-selected={panelTab === tab} className={panelTab === tab ? 'is-active' : ''} onClick={() => setPanelTab(tab)}><span aria-hidden="true">{tab === 'intake' ? '＋' : tab === 'ask' ? '?' : '◎'}</span>{t(`panel.${tab}`)}{tab === 'questions' && questions.filter((item) => item.status === 'Föreslagen').length > 0 && <b>{questions.filter((item) => item.status === 'Föreslagen').length}</b>}</button>)}
             <button className="panel-close" type="button" title={t('panel.collapse')} aria-label={t('panel.collapse')} onClick={() => setPanelOpen(false)}>›</button>

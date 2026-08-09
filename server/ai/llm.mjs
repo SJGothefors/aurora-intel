@@ -17,7 +17,12 @@ function localBaseUrl(portOrUrl) {
 function parseContent(content) {
   if (content && typeof content === 'object' && !Array.isArray(content)) return content;
   if (Array.isArray(content)) content = content.map((item) => item?.text ?? '').join('');
-  try { return JSON.parse(String(content)); }
+  const text = String(content).trim();
+  const fenced = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)?.[1] ?? text;
+  const first = fenced.indexOf('{');
+  const last = fenced.lastIndexOf('}');
+  const candidate = first >= 0 && last > first ? fenced.slice(first, last + 1) : fenced;
+  try { return JSON.parse(candidate); }
   catch (error) { throw new AppError('LLM_INVALID_JSON', 'The local model returned invalid JSON.', { status: 502, cause: error }); }
 }
 
@@ -179,6 +184,15 @@ export class LlamaClient {
     const response = await this.request('/v1/chat/completions', { method: 'POST', body, signal });
     const content = response?.choices?.[0]?.message?.content;
     if (content === undefined) throw new AppError('LLM_EMPTY_RESPONSE', 'The local model returned no completion.', { status: 502 });
+    this.logPrompt({
+      ts: new Date().toISOString(), schema: schemaName, event: 'completion',
+      chars: typeof content === 'string' ? content.length : JSON.stringify(content).length,
+      sha256: sha256(typeof content === 'string' ? content : JSON.stringify(content)),
+      finish_reason: response?.choices?.[0]?.finish_reason ?? null,
+    });
+    if (response?.choices?.[0]?.finish_reason === 'length') {
+      throw new AppError('LLM_OUTPUT_TRUNCATED', 'The local model reached its output limit before completing the response.', { status: 502 });
+    }
     return validateJsonSchema(parseContent(content), schema);
   }
 

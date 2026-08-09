@@ -1,5 +1,6 @@
 export type CaseStatus = 'Ny' | 'Under bearbetning' | 'Uppföljning' | 'Avslutad';
 export type Actor = 'Okänd' | 'Misstänkt främmande' | 'Civil' | 'Egen';
+export type SourceAssessment = 'Okänd' | 'Låg' | 'Medel' | 'Hög';
 
 export interface Note {
   id: string | number;
@@ -21,6 +22,7 @@ export interface IntelCase {
   begrepp: string[];
   aktor: Actor;
   source_report_id: string | null;
+  source_assessment: SourceAssessment;
   dtg_raw: string | null;
   time_utc: string | null;
   time_uncertain: boolean;
@@ -35,7 +37,9 @@ export interface IntelCase {
   count_max: number | null;
   slag: string | null;
   sysselsattning: string | null;
+  activity_summary: string | null;
   symbol: string | null;
+  traits_summary: string | null;
   sagesman: string | null;
   kallrapport_raw: string | null;
   ai_json: unknown;
@@ -88,7 +92,7 @@ export interface Settings {
   appPort: number;
   llmPort: number;
   lang: 'sv' | 'en';
-  theme: 'dark' | 'light';
+  theme: 'dark';
   accent: string;
   density: 'compact' | 'comfortable';
   operatorName: string;
@@ -97,6 +101,28 @@ export interface Settings {
   backupIntervalMin: number;
   spaningsfragaTrigger: number;
   modelPath: string;
+}
+
+export interface WeatherEntry {
+  id: number;
+  forecast_at: string;
+  temperature_c: number | null;
+  rain_mm: number | null;
+  humidity_pct: number | null;
+  cloud_pct: number | null;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AnalysisJob {
+  id: string;
+  type: 'overview';
+  status: 'pending' | 'running' | 'done' | 'failed' | 'cancelled';
+  result?: Assessment;
+  error_code?: string;
+  created_at?: string;
+  finished_at?: string;
 }
 
 export interface ExtractionField<T> {

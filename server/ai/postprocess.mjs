@@ -175,6 +175,7 @@ export function postprocessExtraction(value, context = {}) {
 }
 
 export function extractionReportToCase(report, { sourceText, aiJson, createdBy = '' } = {}) {
+  const short = (value) => String(value ?? '').trim().split(/\s+/u).slice(0, 4).join(' ') || null;
   return {
     created_by: createdBy,
     source_report_id: report.source_report_id,
@@ -192,7 +193,9 @@ export function extractionReportToCase(report, { sourceText, aiJson, createdBy =
     count_max: report.styrkan.count_max,
     slag: report.slaget,
     sysselsattning: report.sysselsattningen,
+    activity_summary: short(report.sysselsattningen),
     symbol: report.symbolen,
+    traits_summary: short(report.symbolen),
     sagesman: report.sagesmannen,
     begrepp: report.begrepp,
     kallrapport_raw: sourceText ?? null,
@@ -206,7 +209,7 @@ export function sanitizeQuestions(value, validCaseIds) {
   assert(Array.isArray(output.proposals), 'INVALID_AI_OUTPUT', 'proposals must be an array.');
   const valid = new Set([...validCaseIds].map(Number));
   return {
-    proposals: output.proposals.slice(0, 5).map((proposal) => ({
+    proposals: output.proposals.slice(0, 3).map((proposal) => ({
       question: String(proposal.question ?? '').trim(),
       motivering: String(proposal.motivering ?? '').trim(),
       prioritet: ['Hög', 'Medel', 'Låg'].includes(proposal.prioritet) ? proposal.prioritet : 'Medel',

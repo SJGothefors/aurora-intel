@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { AppError, assert } from '../errors.mjs';
 
-const TYPES = new Set(['extraction', 'questions', 'qa', 'assessment']);
+const TYPES = new Set(['extraction', 'questions', 'qa', 'assessment', 'overview']);
 const MAX_ACTIVE_JOBS = 32;
 const MAX_RETAINED_JOBS = 100;
 const MAX_JOB_PAYLOAD_BYTES = 256 * 1024;
@@ -27,6 +27,7 @@ export class AIJobQueue {
     this.closing = false;
     this.current = null;
     this.autoTimer = null;
+    this.overviewTimer = null;
     this.debounceMs = debounceMs;
     const configuredThreshold = Number(questionThreshold);
     this.questionThreshold = Number.isFinite(configuredThreshold) && configuredThreshold >= 0 ? configuredThreshold : 3;
@@ -65,6 +66,11 @@ export class AIJobQueue {
     return decode(row, options);
   }
 
+  latest(type) {
+    assert(TYPES.has(type), 'INVALID_JOB_TYPE', 'The AI job type is invalid.');
+    return decode(this.db.prepare('SELECT * FROM ai_jobs WHERE type = ? ORDER BY created_at DESC LIMIT 1').get(type));
+  }
+
   cancel(id) {
     const job = this.get(id);
     if (['done', 'failed', 'cancelled'].includes(job.status)) return job;
@@ -83,9 +89,20 @@ export class AIJobQueue {
       this.autoTimer = null;
       const count = Number(this.db.prepare('SELECT count(*) AS count FROM cases').get().count);
       const active = Number(this.db.prepare("SELECT count(*) AS count FROM ai_jobs WHERE type = 'questions' AND status IN ('pending', 'running')").get().count);
-      if (count > this.questionThreshold && !active) this.enqueue('questions', { ...payload, automatic: true });
+      if (count >= this.questionThreshold && !active) this.enqueue('questions', { ...payload, automatic: true });
     }, this.debounceMs);
     this.autoTimer.unref?.();
+  }
+
+  scheduleOverview(payload = {}) {
+    clearTimeout(this.overviewTimer);
+    this.overviewTimer = setTimeout(() => {
+      this.overviewTimer = null;
+      const count = Number(this.db.prepare('SELECT count(*) AS count FROM cases').get().count);
+      const active = Number(this.db.prepare("SELECT count(*) AS count FROM ai_jobs WHERE type = 'overview' AND status IN ('pending', 'running')").get().count);
+      if (count >= 3 && !active) this.enqueue('overview', { ...payload, automatic: true });
+    }, this.debounceMs);
+    this.overviewTimer.unref?.();
   }
 
   async drain() {
@@ -131,6 +148,7 @@ export class AIJobQueue {
   async close() {
     this.closing = true;
     clearTimeout(this.autoTimer);
+    clearTimeout(this.overviewTimer);
     this.db.prepare("UPDATE ai_jobs SET status = 'cancelled', payload = '{}', error_code = 'JOB_CANCELLED', finished_at = ? WHERE status = 'pending'")
       .run(new Date().toISOString());
     this.current?.controller.abort(new Error('shutdown'));

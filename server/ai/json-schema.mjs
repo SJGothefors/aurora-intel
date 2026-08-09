@@ -29,6 +29,7 @@ function validate(value, schema, path) {
   if (schema.const !== undefined && !equal(value, schema.const)) violation(path, 'const');
   if (schema.enum && !schema.enum.some((item) => equal(value, item))) violation(path, 'enum');
   if (typeof value === 'number' && schema.minimum !== undefined && value < schema.minimum) violation(path, 'minimum');
+  if (typeof value === 'string' && schema.maxLength !== undefined && value.length > schema.maxLength) violation(path, 'maxLength');
 
   if (Array.isArray(value)) {
     if (schema.minItems !== undefined && value.length < schema.minItems) violation(path, 'minItems');

@@ -103,7 +103,7 @@ if (withAi) {
     }
     const model = checkedModel(modelPath);
     if (!llama) throw new Error('Local AI engine not found.');
-    launch(llama, ['--host', '127.0.0.1', '--port', String(llmPort), '--model', model, '--ctx-size', String(config.llm.contextSize), '--seed', String(config.llm.seed)], { LLAMA_API_KEY: llmKey });
+    launch(llama, ['--host', '127.0.0.1', '--port', String(llmPort), '--model', model, '--ctx-size', String(config.llm.contextSize), '--parallel', '1', '--seed', String(config.llm.seed)], { LLAMA_API_KEY: llmKey });
   } catch (error) {
     process.stderr.write(`Cannot start local AI: ${error instanceof Error ? error.message : String(error)}\n`);
     process.exit(1);

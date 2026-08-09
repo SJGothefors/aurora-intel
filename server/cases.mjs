@@ -7,10 +7,10 @@ import { boundedStringArray, boundedText, encodeBoundedJson, INPUT_LIMITS } from
 
 export const CASE_COLUMNS = Object.freeze([
   'id', 'lopnr', 'created_at', 'updated_at', 'created_by', 'status', 'star',
-  'tags', 'begrepp', 'aktor', 'source_report_id', 'dtg_raw', 'time_utc', 'time_uncertain',
+  'tags', 'begrepp', 'aktor', 'source_report_id', 'source_assessment', 'dtg_raw', 'time_utc', 'time_uncertain',
   'place_raw', 'place_name', 'mgrs', 'lat', 'lon', 'position_missing',
   'styrka_raw', 'count_min', 'count_max', 'slag', 'sysselsattning',
-  'symbol', 'sagesman', 'kallrapport_raw', 'ai_json', 'bedomning',
+  'symbol', 'sagesman', 'activity_summary', 'traits_summary', 'kallrapport_raw', 'ai_json', 'bedomning',
   'fields_uncertain',
 ]);
 
@@ -19,6 +19,7 @@ const JSON_ARRAY_COLUMNS = new Set(['tags', 'begrepp', 'fields_uncertain']);
 const BOOLEAN_COLUMNS = new Set(['star', 'time_uncertain', 'position_missing']);
 const STATUSES = new Set(['Ny', 'Under bearbetning', 'Uppföljning', 'Avslutad']);
 const ACTORS = new Set(['Okänd', 'Misstänkt främmande', 'Civil', 'Egen']);
+const SOURCE_ASSESSMENTS = new Set(['Okänd', 'Låg', 'Medel', 'Hög']);
 
 function own(object, key) {
   return Object.prototype.hasOwnProperty.call(object, key);
@@ -144,8 +145,10 @@ export function normalizeCase(db, rawInput, options = {}) {
 
   const status = text(merged.status, { field: 'status', maxBytes: 64, emptyAsNull: false }) || 'Ny';
   const aktor = text(merged.aktor, { field: 'aktor', maxBytes: 64, emptyAsNull: false }) || 'Okänd';
+  const sourceAssessment = text(merged.source_assessment, { field: 'source_assessment', maxBytes: 64, emptyAsNull: false }) || 'Okänd';
   assert(STATUSES.has(status), 'INVALID_STATUS', 'The case status is invalid.', { details: { status } });
   assert(ACTORS.has(aktor), 'INVALID_ACTOR', 'The actor classification is invalid.', { details: { aktor } });
+  assert(SOURCE_ASSESSMENTS.has(sourceAssessment), 'INVALID_SOURCE_ASSESSMENT', 'The source assessment is invalid.');
 
   const tags = parseArray(merged.tags, { separators: true, field: 'tags', maxItems: 64, maxItemBytes: 128 });
   const begrepp = normalizeVocabulary(db, merged.begrepp, { activeOnly: !options.allowInactiveVocabulary });
@@ -205,6 +208,7 @@ export function normalizeCase(db, rawInput, options = {}) {
     tags,
     begrepp,
     aktor,
+    source_assessment: sourceAssessment,
     source_report_id: text(merged.source_report_id, { field: 'source_report_id', maxBytes: INPUT_LIMITS.case.source_report_id }),
     dtg_raw: dtgRaw,
     time_utc: timeUtc,
@@ -219,6 +223,8 @@ export function normalizeCase(db, rawInput, options = {}) {
     sysselsattning: text(merged.sysselsattning, { field: 'sysselsattning', maxBytes: INPUT_LIMITS.case.sysselsattning }),
     symbol: text(merged.symbol, { field: 'symbol', maxBytes: INPUT_LIMITS.case.symbol }),
     sagesman: text(merged.sagesman, { field: 'sagesman', maxBytes: INPUT_LIMITS.case.sagesman }),
+    activity_summary: text(merged.activity_summary, { field: 'activity_summary', maxBytes: INPUT_LIMITS.case.activity_summary }),
+    traits_summary: text(merged.traits_summary, { field: 'traits_summary', maxBytes: INPUT_LIMITS.case.traits_summary }),
     kallrapport_raw: text(merged.kallrapport_raw, { field: 'kallrapport_raw', maxBytes: INPUT_LIMITS.case.kallrapport_raw }),
     ai_json: aiJson,
     bedomning: text(merged.bedomning, { field: 'bedomning', maxBytes: INPUT_LIMITS.case.bedomning }),
