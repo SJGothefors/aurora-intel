@@ -398,6 +398,7 @@
     "nameEn": "Engelskt namn",
     "definition": "Definition",
     "sidc": "Symbolkod (SIDC)",
+    "sidcHint": "Valfritt. Lämna tomt för en neutral standardsymbol.",
     "symbol": "Markör",
     "order": "Ordning",
     "moveUp": "Flytta upp",

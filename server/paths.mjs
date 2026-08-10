@@ -94,7 +94,7 @@ export function loadAppConfig(paths, overrides = {}) {
     accent: '#F0568C',
     operatorName: '',
     bannerText: 'EJ SEKRETESSKLASSAT – ÖVNING',
-    likelihoodScale: ['mycket osannolikt', 'osannolikt', 'möjligt', 'sannolikt', 'mycket sannolikt'],
+    likelihoodScale: ['tveksam', 'möjligen', 'troligen', 'sannolik'],
     backupIntervalMin: 30,
     backupRetention: 20,
     spaningsfragaTrigger: 3,

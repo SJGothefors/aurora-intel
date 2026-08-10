@@ -44,6 +44,7 @@ export function CaseDetail({ item, vocabulary, tagSuggestions, llm, cited, onClo
 
   const notes = useMemo(() => [...(item?.notes ?? [])].sort((a, b) => b.ts.localeCompare(a.ts)), [item?.notes]);
   if (!item) return null;
+  const sourceAndType = [item.source_report_id, item.slag ?? item.begrepp[0]].filter(Boolean).join(' - ') || t('app.notAvailable');
 
   const saveEdit = async () => {
     setSaving(true);
@@ -65,7 +66,7 @@ export function CaseDetail({ item, vocabulary, tagSuggestions, llm, cited, onClo
       <div className="drawer-scrim" onClick={onClose} />
       <aside className="detail-drawer" aria-label={t('detail.title', { number: item.lopnr })}>
         <header className="detail-header">
-          <div><span className="eyebrow">{t('detail.eyebrow')}</span><h2>{t('detail.title', { number: item.lopnr })}</h2><div className="detail-chips"><span className={`status-chip status-${item.status.replace(/\s/g, '-').toLowerCase()}`}>{t(`status.${item.status}`)}</span>{item.star && <span className="star-chip">★</span>}{cited && <span className="citation-chip">↳ {t('detail.flash')}</span>}</div></div>
+          <div><span className="eyebrow">{t('detail.title', { number: item.lopnr })}</span><h2>{sourceAndType}</h2><div className="detail-chips"><span className={`status-chip status-${item.status.replace(/\s/g, '-').toLowerCase()}`}>{t(`status.${item.status}`)}</span>{item.star && <span className="star-chip">★</span>}{cited && <span className="citation-chip">↳ {t('detail.flash')}</span>}</div></div>
           <button className="icon-button" type="button" aria-label={t('app.close')} title={t('app.close')} onClick={onClose}>×</button>
         </header>
         <nav className="drawer-tabs">

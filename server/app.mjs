@@ -423,8 +423,11 @@ export function createAuroraApp(options = {}) {
     }
 
     if (method === 'GET' && pathname === '/api/ai/jobs') return sendJson(response, 200, { rows: jobs.list(query) });
-    if (method === 'GET' && pathname === '/api/analysis/latest') return sendJson(response, 200, { job: jobs.latest('overview') });
-    if (method === 'POST' && pathname === '/api/analysis/refresh') return sendJson(response, 202, jobs.enqueue('overview', await readBody(request)));
+    if (method === 'GET' && pathname === '/api/analysis/latest') return sendJson(response, 200, { job: jobs.latestWithPrevious('overview') });
+    if (method === 'POST' && pathname === '/api/analysis/refresh') {
+      jobs.enqueue('overview', await readBody(request));
+      return sendJson(response, 202, jobs.latestWithPrevious('overview'));
+    }
     if (method === 'POST' && pathname === '/api/ai/jobs') {
       const body = await readBody(request);
       return sendJson(response, 202, jobs.enqueue(body.type, body.payload ?? {}));

@@ -15,7 +15,8 @@ TYPE är ett eller flera ord ur den aktiva kontrollerade listan. NAME/slag behå
 | Kort 7S-slag/aktivitet | NAME i liggaren | Lämpligt TYPE | Viktig avgränsning |
 |---|---|---|---|
 | “2 T-90 framrycker längs väg” | T-90 | FORDON MIL / STRIDSFORDON | Registrera två som styrka; aktivitet högst “framrycker längs väg” |
-| “vit pickup står vid grind, fotograferar” | vit pickup | FORDON CIVILT AVVIKANDE och eventuellt SPANING/REKOGNOSERING | Fotografering är inte automatiskt fientlig; om avvikelsen är oklar välj hellre bara fordon/okänt |
+| “vit pickup står vid grind, fotograferar” | vit pickup | FORDON CIVILT AVVIKANDE och eventuellt SPANING/REKOGNOSERING | Fotografering är inte automatiskt fientlig; om aktiviteten är oklar välj bara det direkt observerade fordonsbegreppet |
+| “diplomatbil (svart sedan, diplomatskyltar) parkerad utanför byggnad” | diplomatbil | FORDON CIVILT AVVIKANDE | Fordonstypen kan väljas utan att aktörens avsikt eller verksamhet påstås vara fientlig |
 | “fyra beväpnade personer till fots” | beväpnad personal | PERSONAL/TRUPP | Aktivitet beskriver rörelse/uppehåll, inte antaget syfte |
 | “quadcopter cirklar över området” | quadcopter | UAS/DRÖNARE | Ljus eller ljud utan visuell bekräftelse kan vara `ÖVRIGT/OKÄNT` |
 | “helikopter landar på fält” | helikopter | HELIKOPTER | Aktör och militär/civil status hålls okänd utan märkning eller annan verifiering |
@@ -36,4 +37,4 @@ TYPE är ett eller flera ord ur den aktiva kontrollerade listan. NAME/slag behå
 - `TRAITS`: högst fyra bärande ord från symbolen, exempelvis “vit, kryss, reg ABC123”.
 - `SOURCE`: kopiera sagesman, normalisera inte personens namn eller sensorbeteckning.
 - `SOURCE ASSESSMENT`: väljs manuellt av underrättelseofficer; modellen får inte gissa.
-- När flera begrepp passar, välj endast de som stöds direkt av texten. Prioritera inte en dramatisk kategori framför `ÖVRIGT/OKÄNT`.
+- När flera begrepp passar, välj endast de som stöds direkt av texten. Välj ett sakligt, direkt stött objekt- eller aktivitetsbegrepp före `ÖVRIGT/OKÄNT`; välj aldrig en dramatisk kategori bara för att slippa okänt.

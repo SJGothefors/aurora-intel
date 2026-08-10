@@ -120,6 +120,7 @@ export interface AnalysisJob {
   type: 'overview';
   status: 'pending' | 'running' | 'done' | 'failed' | 'cancelled';
   result?: Assessment;
+  previous_result?: Assessment;
   error_code?: string;
   created_at?: string;
   finished_at?: string;
@@ -241,7 +242,7 @@ export const DEFAULT_SETTINGS: Settings = {
   density: 'compact',
   operatorName: '',
   bannerText: 'EJ SEKRETESSKLASSAT – ÖVNING',
-  likelihoodScale: ['mycket osannolikt', 'osannolikt', 'möjligt', 'sannolikt', 'mycket sannolikt'],
+  likelihoodScale: ['tveksam', 'möjligen', 'troligen', 'sannolik'],
   backupIntervalMin: 30,
   spaningsfragaTrigger: 3,
   modelPath: '',

@@ -95,7 +95,7 @@ När liggaren innehåller fler än den inställda tröskeln (standard 3) kan AI 
 
 I **Fråga AI** söker backend först fram högst cirka 40 relevanta rader och modellen får endast dessa. Svaret visar citerade ärenden; klicka en citering för att markera tabellrad och karttecken. Ett kluster/rutt/trend visas bara när bifogade rader stöder det. Ett korrekt svar kan vara att underlaget inte räcker.
 
-**Bedöm** på ett eller flera ärenden returnerar separata fält för FAKTA och BEDÖMNING, en av fem sannolikhetsnivåer och motivering. Kunskapsbanken ger detektionskontext, inte nya fakta. Kontrollera alternativa förklaringar och spara endast efter egen prövning.
+**Bedöm** på ett eller flera ärenden returnerar separata fält för FAKTA och BEDÖMNING, ett ord ur den konfigurerade sannolikhetsskalan och motivering. Standardskalan följer R UND 2022: tveksam, möjligen, troligen, sannolik. Kunskapsbanken ger detektionskontext, inte nya fakta. Kontrollera alternativa förklaringar och spara endast efter egen prövning.
 
 ## LLM-status och modellbyte
 

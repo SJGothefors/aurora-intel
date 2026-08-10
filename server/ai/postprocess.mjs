@@ -26,6 +26,62 @@ function integerOrNull(value) {
   return Number.isSafeInteger(number) && number >= 0 ? number : null;
 }
 
+function findMgrsInText(value) {
+  const text = nullableText(value);
+  if (!text) return null;
+  const spaced = text.match(/\b\d{1,2}\s*[C-HJ-NP-X]\s*[A-HJ-NP-Z]{2}\s+(\d{1,5})\s+(\d{1,5})\b/iu);
+  if (spaced && spaced[1].length === spaced[2].length) return spaced[0];
+  return text.match(/\b\d{1,2}[C-HJ-NP-X][A-HJ-NP-Z]{2}\d{2,10}\b/iu)?.[0] ?? null;
+}
+
+function localityFromPlaceName(value) {
+  const placeName = nullableText(value);
+  if (!placeName) return null;
+  return placeName.match(/^(.+?)\s+(?:centrum|stadskärna|citykärna)$/iu)?.[1]?.trim() || placeName;
+}
+
+function splitLabeledPlace(value) {
+  const text = nullableText(value);
+  if (!text) return { raw: null, mgrs: null, placeName: null };
+  const mgrs = findMgrsInText(text);
+  if (!mgrs) return { raw: text, mgrs: null, placeName: text };
+  const remainder = text.replace(mgrs, '').replace(/^[\s,;:().-]+|[\s,;:().-]+$/gu, '').trim();
+  if (!remainder) return { raw: text, mgrs, placeName: null };
+  return { raw: localityFromPlaceName(remainder), mgrs, placeName: remainder };
+}
+
+function inferVocabulary(allowed, values) {
+  const text = Object.values(values).map((value) => String(value ?? '')).join(' ').toLocaleLowerCase('sv-SE');
+  const inferred = [];
+  const add = (name) => {
+    const term = allowed.get(name);
+    if (term && !inferred.includes(term)) inferred.push(term);
+  };
+
+  if (/(?:stridsvagn|stridsfordon|pansarfordon|t-?\s?90|bmp-?\d*|btr-?\d*|\bifv\b|\bapc\b)/u.test(text)) add('STRIDSFORDON');
+  else if (/(?:militär(?:t|a)?\s+fordon|terrängbil|bandvagn)/u.test(text)) add('FORDON MIL');
+  else if (/(?:diplomatbil|diplomatfordon|civil(?:t|a)?\s+(?:fordon|personbil)|personbil|sedan|pickup|skåpbil)/u.test(text)) add('FORDON CIVILT AVVIKANDE');
+
+  if (/(?:drönare|drone|quadcopter|multikopter|\buas\b|obemannad\s+luftfarkost)/u.test(text)) add('UAS/DRÖNARE');
+  else if (/(?:helikopter|rotorcraft)/u.test(text)) add('HELIKOPTER');
+  else if (/(?:flygplan|luftfarkost|aircraft)/u.test(text)) add('LUFTFARKOST');
+
+  if (/(?:örlogsfartyg|krigsfartyg|fregatt|korvett|jagare|ubåt|militär(?:t|a)?\s+fartyg)/u.test(text)) add('FARTYG ÖRLOG');
+  else if (/(?:lastfartyg|tankfartyg|färja|civilt?\s+fartyg|handelsfartyg)/u.test(text)) add('FARTYG CIVILT AVVIKANDE');
+
+  if (/(?:beväpnad(?:e)?\s+person|uniformerad(?:e)?|soldat(?:er)?|trupp|militär\s+personal)/u.test(text)) add('PERSONAL/TRUPP');
+  if (/(?:rekognos|spaning|fotograferar|fotograferade|kartlägger|observerar\s+(?:grind|skyddsobjekt|anläggning)|frågar\s+om\s+vaktschema)/u.test(text)) add('SPANING/REKOGNOSERING');
+  if (/(?:gnss|gps).{0,24}(?:stör|jam|spoof)|(?:stör|jam|spoof).{0,24}(?:gnss|gps)/u.test(text)) add('SIGNALSTÖRNING/GNSS');
+  if (/(?:kritisk\s+infrastruktur|fiberkabel|kabelskåp|transformatorstation|vattenverk|kraftverk)/u.test(text)) add('KRITISK INFRASTRUKTUR');
+  if (/(?:gränskränkning|obehörig\s+gränspassage|kränkte\s+gräns)/u.test(text)) add('GRÄNSKRÄNKNING');
+  if (/(?:sabotage|skadegörelse|vandaliser|uppbrutet|sönderslaget|avsiktligt\s+skad)/u.test(text)) add('SABOTAGE/SKADEGÖRELSE');
+  if (/(?:underrättelseverksamhet|värvningsförsök|elicitering|inhämtar\s+skyddsvärd\s+information)/u.test(text)) add('UNDERRÄTTELSEVERKSAMHET');
+  if (/(?:logistik|transportkolonn|konvoj|lossar\s+materiel|lastar\s+materiel|tankbil)/u.test(text)) add('LOGISTIK/TRANSPORT');
+  if (/(?:övning|utbildning|övar|tränar)/u.test(text)) add('ÖVNING/UTBILDNING');
+  if (/(?:\bcbrn\b|kemisk|biologisk|radiologisk|radioaktiv|nukleär)/u.test(text)) add('CBRN');
+  return inferred;
+}
+
 const LABELS = [
   ['stunden', /\bstund(?:en)?\b/giu],
   ['stallet', /\bst(?:ä|a)lle(?:t)?\b/giu],
@@ -56,20 +112,20 @@ export function extractCompleteLabeled7S(sourceText, context = {}) {
   const labeled = labeled7S(String(sourceText ?? ''));
   const required = ['stunden', 'stallet', 'styrkan', 'slaget', 'sysselsattningen', 'symbolen', 'sagesmannen'];
   if (!labeled || !required.every((field) => labeled[field])) return null;
-  const mgrs = labeled.stallet.replace(/\s+/gu, '').match(/^\d{1,2}[C-HJ-NP-X][A-HJ-NP-Z]{2}\d{2,10}$/iu) ? labeled.stallet : null;
+  const place = splitLabeledPlace(labeled.stallet);
   const count = labeled.styrkan.match(/\b(\d+)\b/u)?.[1];
   return postprocessExtraction({
     reports: [{
       source_report_id: labeled.source_report_id,
       stunden: { raw: labeled.stunden, iso_utc: null, uncertain: false },
-      stallet: { raw: labeled.stallet, mgrs, lat: null, lon: null, place_name: mgrs ? null : labeled.stallet },
+      stallet: { raw: place.raw, mgrs: place.mgrs, lat: null, lon: null, place_name: place.placeName },
       styrkan: { raw: labeled.styrkan, count_min: count ? Number(count) : null, count_max: count ? Number(count) : null },
       slaget: labeled.slaget,
       sysselsattningen: labeled.sysselsattningen,
       symbolen: labeled.symbolen,
       sagesmannen: labeled.sagesmannen,
       begrepp: [],
-      position_missing: !mgrs,
+      position_missing: !place.mgrs,
       fields_uncertain: [],
       summary_sv: `${labeled.slaget}: ${labeled.sysselsattningen}`,
     }],
@@ -109,7 +165,8 @@ export function postprocessExtraction(value, context = {}) {
     if (!isoUtc && dtgRaw) fieldsUncertain.add('stunden');
 
     const labeledPlace = nullableText(labeled?.stallet);
-    const labeledMgrs = labeledPlace?.replace(/\s+/gu, '').match(/^\d{1,2}[C-HJ-NP-X][A-HJ-NP-Z]{2}\d{2,10}$/iu) ? labeledPlace : null;
+    const labeledLocation = labeledPlace ? splitLabeledPlace(labeledPlace) : null;
+    const labeledMgrs = labeledLocation?.mgrs ?? null;
     let position = normalizePosition({ mgrs: labeledMgrs ?? stallet.mgrs, lat: stallet.lat, lon: stallet.lon }, { strict: false });
     const invalidMgrs = Boolean(position.error);
     if (invalidMgrs && stallet.lat !== null && stallet.lat !== undefined && stallet.lon !== null && stallet.lon !== undefined) {
@@ -135,7 +192,24 @@ export function postprocessExtraction(value, context = {}) {
       begrepp.splice(0, begrepp.length, combatVehicle);
       fieldsUncertain.delete('begrepp');
     }
-    if (!begrepp.length && fallback) begrepp.push(fallback);
+    const specificVocabulary = begrepp.filter((item) => item !== fallback);
+    if (!specificVocabulary.length) {
+      const inferred = inferVocabulary(allowed, {
+        slaget: labeled?.slaget ?? report.slaget,
+        styrkan: labeled?.styrkan ?? styrkan.raw,
+        sysselsattningen: labeled?.sysselsattningen ?? report.sysselsattningen,
+        symbolen: labeled?.symbolen ?? report.symbolen,
+        stallet: labeled?.stallet ?? stallet.raw,
+      });
+      begrepp.splice(0, begrepp.length, ...inferred);
+      if (inferred.length) fieldsUncertain.delete('begrepp');
+    } else if (begrepp.includes(fallback)) {
+      begrepp.splice(0, begrepp.length, ...specificVocabulary);
+    }
+    if (!begrepp.length && fallback) {
+      begrepp.push(fallback);
+      fieldsUncertain.add('begrepp');
+    }
 
     let countMin = integerOrNull(styrkan.count_min);
     let countMax = integerOrNull(styrkan.count_max);
@@ -154,11 +228,11 @@ export function postprocessExtraction(value, context = {}) {
       },
       source_report_id: nullableText(labeled?.source_report_id ?? report.source_report_id),
       stallet: {
-        raw: labeledPlace ?? nullableText(stallet.raw),
+        raw: labeledLocation?.raw ?? nullableText(stallet.raw),
         mgrs: position.mgrs,
         lat: position.lat,
         lon: position.lon,
-        place_name: labeledMgrs ? null : nullableText(stallet.place_name),
+        place_name: labeledLocation ? labeledLocation.placeName : nullableText(stallet.place_name),
       },
       styrkan: { raw: nullableText(labeled?.styrkan ?? styrkan.raw), count_min: countMin, count_max: countMax },
       slaget: nullableText(labeled?.slaget ?? report.slaget),
@@ -209,7 +283,7 @@ export function sanitizeQuestions(value, validCaseIds) {
   assert(Array.isArray(output.proposals), 'INVALID_AI_OUTPUT', 'proposals must be an array.');
   const valid = new Set([...validCaseIds].map(Number));
   return {
-    proposals: output.proposals.slice(0, 3).map((proposal) => ({
+    proposals: output.proposals.slice(0, 2).map((proposal) => ({
       question: String(proposal.question ?? '').trim(),
       motivering: String(proposal.motivering ?? '').trim(),
       prioritet: ['Hög', 'Medel', 'Låg'].includes(proposal.prioritet) ? proposal.prioritet : 'Medel',

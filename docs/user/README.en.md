@@ -79,7 +79,7 @@ Above the configured case threshold (default: more than 3), AI can propose up to
 
 For **Ask AI**, the backend retrieves at most about 40 candidate rows. The answer can only rely on those rows and lists exact cited IDs; click a citation to highlight table/map. If evidence is insufficient, the correct response says so. Pattern overlays require supporting rows and do not imply causation.
 
-**Assess** separates FAKTA from BEDÖMNING, uses the configured five-step likelihood scale, and should test alternative explanations. Knowledge files supply detection context, never additional event facts. Store a result only after human review.
+**Assess** separates FAKTA from BEDÖMNING, uses the configured likelihood scale, and should test alternative explanations. The default follows R UND 2022: tveksam, möjligen, troligen, sannolik. Knowledge files supply detection context, never additional event facts. Store a result only after human review.
 
 ## LLM status and model changes
 

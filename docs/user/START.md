@@ -14,6 +14,19 @@
 
 `npm run dev:ai` takes no model or server paths. The first connected run retrieves only URLs pinned with SHA-256 in `config/versions.lock`; later starts reuse verified local files. `npm run dev` and `npm start` never download a model.
 
+### If someone receives the source code
+
+For a connected Mac or Windows development computer, install Node.js 24.18.1 first, open a terminal in the Aurora folder, and run:
+
+```sh
+npm ci --ignore-scripts
+npm run dev:ai
+```
+
+`npm run build` is not needed before `npm run dev:ai`. The first AI start downloads and verifies roughly 4.5 GB of model and local-engine files, so it needs internet access, sufficient disk space and time. Later starts reuse those files. Stop with `Ctrl+C`.
+
+This source-code route still assumes the person can install Node, open the correct folder in a terminal and recognise an error message. For a non-technical operator, distribute a prepared offline release instead: after it has been created on the trusted build computer, the target user only double-clicks `build.command` then `start.command` on macOS, or `build.bat` then `start.bat` on Windows. That target does not need Node, npm, internet access or a cloud account.
+
 ## Air-gapped workflow
 
 | Phase | macOS | Windows |

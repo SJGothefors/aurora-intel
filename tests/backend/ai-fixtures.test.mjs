@@ -4,7 +4,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { AIService } from '../../server/ai/service.mjs';
-import { postprocessExtraction } from '../../server/ai/postprocess.mjs';
+import { extractCompleteLabeled7S, postprocessExtraction } from '../../server/ai/postprocess.mjs';
+import { createCase } from '../../server/cases.mjs';
 import { temporaryDatabase } from './helpers.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -57,6 +58,44 @@ test('mocked local model fixtures are defensively post-processed into previews',
   assert.ok(llm.calls.every((call) => call.schema && call.schemaName === 'aurora_extraction'));
 });
 
+test('assessment and question prompts stay compact and use bounded outputs', async (t) => {
+  const { db } = temporaryDatabase(t);
+  const item = createCase(db, {
+    slag: 'Svart sedan', sysselsattning: 'Parkerad utanför byggnad', place_name: 'Södertälje centrum',
+    kallrapport_raw: `101445. ${'Bakgrundsuppgift '.repeat(300)}`, begrepp: ['STRIDSFORDON'],
+  });
+  const llm = new MockLlm([{
+    proposals: [{
+      question: 'Återkommer fordonet till platsen?', motivering: 'Återkommande närvaro är inte klarlagd.',
+      prioritet: 'Hög', linked_case_ids: [item.id], forslag_inhamtning: 'Följ ordinarie observation och rapportering.',
+    }],
+  }, {
+    fakta: 'En svart sedan rapporterades parkerad i Södertälje centrum.',
+    bedomning: 'Händelsen kan vara rutinmässig; avvikande återkomst är en alternativ hypotes.',
+    sannolikhet: 'möjligen', motivering: 'En observation ger begränsat stöd och ingen oberoende bekräftelse.',
+    rekommendation: 'Klargör om fordonet återkommer vid samma tid och plats.',
+  }]);
+  const service = new AIService({
+    db, llm,
+    prompts: {
+      load: (key) => key,
+      render: (key, values) => `${key}:${JSON.stringify(values)}`,
+    },
+    knowledge: { select: () => 'K'.repeat(5_000) },
+    config: { likelihoodScale: ['tveksam', 'möjligen', 'troligen', 'sannolik'] },
+  });
+
+  await service.questions({ language: 'sv' });
+  await service.assessment({ case_id: item.id, language: 'sv' });
+
+  assert.equal(llm.calls[0].maxTokens, 420);
+  assert.equal(llm.calls[0].schema.properties.proposals.maxItems, 2);
+  assert.ok(!llm.calls[0].messages[1].content.includes('K'.repeat(1_500)));
+  assert.equal(llm.calls[1].maxTokens, 420);
+  assert.equal(llm.calls[1].schema.properties.fakta.maxLength, 260);
+  assert.ok(!llm.calls[1].messages[1].content.includes('Bakgrundsuppgift '.repeat(30)));
+});
+
 test('explicit labeled 7S fields and source report id override model omissions', () => {
   const sourceText = '051708. Stund, 17:01, Ställe: 33VVC 40125 89192, Styrka, 2 stridsvagnar. Slag: T90, sysselsättning, framrycker längsväg. Symbol, vita kryss. sagesman: Jacob Gothefors.';
   const raw = {
@@ -83,4 +122,23 @@ test('explicit labeled 7S fields and source report id override model omissions',
   assert.equal(result.stallet.place_name, null);
   assert.deepEqual(result.begrepp, ['STRIDSFORDON']);
   assert.equal(result.fields_uncertain.includes('slaget'), false);
+});
+
+test('labeled place splits locality, place name and embedded MGRS', () => {
+  const sourceText = '101445. Stund, 14:45, Ställe: 33V XF 49948 64772 (Södertälje centrum), Styrka, 1 fordon, Slag, diplomatbil (svart sedan, diplomatskyltar), Sysselsättning, parkerad utanför byggnad, Symbol, blå diamant, Sagesman: Karin Söderberg.';
+  const result = extractCompleteLabeled7S(sourceText, {
+    sourceText,
+    activeVocabulary: ['FORDON CIVILT AVVIKANDE', 'ÖVRIGT/OKÄNT'],
+    referenceDate: new Date('2026-08-10T14:00:00.000Z'),
+    localOffsetMinutes: 120,
+  }).reports[0];
+
+  assert.equal(result.source_report_id, '101445');
+  assert.equal(result.stallet.raw, 'Södertälje');
+  assert.equal(result.stallet.place_name, 'Södertälje centrum');
+  assert.equal(result.stallet.mgrs, '33VXF 49948 64772');
+  assert.equal(result.position_missing, false);
+  assert.deepEqual(result.begrepp, ['FORDON CIVILT AVVIKANDE']);
+  assert.equal(result.fields_uncertain.includes('stallet'), false);
+  assert.equal(result.fields_uncertain.includes('begrepp'), false);
 });

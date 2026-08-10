@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCase, listCases, updateCase } from '../../server/cases.mjs';
-import { updateVocabularyEntry } from '../../server/entities.mjs';
+import { getSettings, updateVocabularyEntry } from '../../server/entities.mjs';
 import { temporaryDatabase } from './helpers.mjs';
 
 test('case search, filters, coordinate repair, and vocabulary rename stay consistent', (t) => {
@@ -26,4 +26,12 @@ test('case search, filters, coordinate repair, and vocabulary rename stay consis
   updateVocabularyEntry(db, vocabulary.id, { name_sv: 'PANSARFORDON' });
   assert.deepEqual(listCases(db, { begrepp: 'PANSARFORDON' }).rows[0].begrepp, ['PANSARFORDON']);
   assert.equal(listCases(db, { q: 'pansarfordon' }).total, 1);
+});
+
+test('legacy default likelihood labels migrate to the R UND 2022 scale without replacing custom scales', (t) => {
+  const { db } = temporaryDatabase(t);
+  assert.deepEqual(getSettings(db, {
+    likelihoodScale: ['mycket osannolikt', 'osannolikt', 'möjligt', 'sannolikt', 'mycket sannolikt'],
+  }).likelihoodScale, ['tveksam', 'möjligen', 'troligen', 'sannolik']);
+  assert.deepEqual(getSettings(db, { likelihoodScale: ['låg', 'hög'] }).likelihoodScale, ['låg', 'hög']);
 });

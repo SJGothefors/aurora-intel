@@ -3,6 +3,15 @@ import { parseArray } from './cases.mjs';
 import { withTransaction } from './db.mjs';
 import { boundedText, encodeBoundedJson, INPUT_LIMITS } from './validation.mjs';
 
+const LEGACY_LIKELIHOOD_SCALE = Object.freeze(['mycket osannolikt', 'osannolikt', 'möjligt', 'sannolikt', 'mycket sannolikt']);
+const R_UND_LIKELIHOOD_SCALE = Object.freeze(['tveksam', 'möjligen', 'troligen', 'sannolik']);
+const DEFAULT_SIDC = '10031000000000000000';
+
+function isLegacyLikelihoodScale(value) {
+  return Array.isArray(value) && value.length === LEGACY_LIKELIHOOD_SCALE.length
+    && value.every((item, index) => String(item).toLocaleLowerCase('sv-SE') === LEGACY_LIKELIHOOD_SCALE[index]);
+}
+
 function nowIso(now) {
   if (!now) return new Date().toISOString();
   const candidate = now instanceof Date ? now : boundedText(now, 'timestamp', 128, { required: true });
@@ -30,7 +39,7 @@ export function normalizeVocabularyEntry(input, options = {}) {
     name_en: requiredText(input.name_en, 'name_en', INPUT_LIMITS.vocabulary_name),
     definition: boundedText(input.definition ?? '', 'definition', INPUT_LIMITS.vocabulary_definition, { emptyAsNull: false }) ?? '',
     active: input.active === undefined ? true : bool(input.active),
-    sidc: boundedText(input.sidc ?? '10031000000000000000', 'sidc', INPUT_LIMITS.sidc, { required: true }),
+    sidc: boundedText(String(input.sidc ?? '').trim() || DEFAULT_SIDC, 'sidc', INPUT_LIMITS.sidc, { required: true }),
     sort,
   };
 }
@@ -268,6 +277,7 @@ export function getSettings(db, defaults = {}) {
   for (const row of db.prepare('SELECT key, value FROM settings').all()) {
     try { result[row.key] = JSON.parse(row.value); } catch { /* Ignore invalid legacy values. */ }
   }
+  if (isLegacyLikelihoodScale(result.likelihoodScale)) result.likelihoodScale = [...R_UND_LIKELIHOOD_SCALE];
   return result;
 }
 

@@ -254,7 +254,15 @@ async function waitForJob<T>(initial: BackendJob): Promise<T> {
   }
   if (job.status === 'done') return job.result as T;
   if (Date.now() >= deadline) throw new Error('The local AI job timed out.');
-  throw new Error(job.error_code ?? `AI job ${job.status}`);
+  const swedish = document.documentElement.lang.toLocaleLowerCase().startsWith('sv');
+  const messages: Record<string, [string, string]> = {
+    LLM_OUTPUT_TRUNCATED: ['Den lokala AI:n hann inte avsluta svaret. Försök igen; underlaget har nu kortats automatiskt.', 'The local AI could not finish its answer. Try again; the supplied context is now shortened automatically.'],
+    LLM_TIMEOUT: ['Den lokala AI:n tog för lång tid. Försök igen.', 'The local AI took too long. Try again.'],
+    LLM_UNAVAILABLE: ['Den lokala AI-modellen är inte tillgänglig.', 'The local AI model is unavailable.'],
+    JOB_CANCELLED: ['AI-jobbet avbröts.', 'The AI job was cancelled.'],
+  };
+  const message = job.error_code ? messages[job.error_code] : undefined;
+  throw new Error(message ? message[swedish ? 0 : 1] : (job.error_code ?? `AI job ${job.status}`));
 }
 
 function backendFilters(value: unknown): Record<string, unknown> | undefined {

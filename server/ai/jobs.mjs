@@ -71,6 +71,13 @@ export class AIJobQueue {
     return decode(this.db.prepare('SELECT * FROM ai_jobs WHERE type = ? ORDER BY created_at DESC LIMIT 1').get(type));
   }
 
+  latestWithPrevious(type) {
+    const latest = this.latest(type);
+    if (!latest || latest.status === 'done') return latest;
+    const previous = decode(this.db.prepare("SELECT * FROM ai_jobs WHERE type = ? AND status = 'done' ORDER BY created_at DESC LIMIT 1").get(type));
+    return previous?.result ? { ...latest, previous_result: previous.result } : latest;
+  }
+
   cancel(id) {
     const job = this.get(id);
     if (['done', 'failed', 'cancelled'].includes(job.status)) return job;
@@ -112,7 +119,8 @@ export class AIJobQueue {
       try {
         while (true) {
           if (this.closing) break;
-          const row = this.db.prepare("SELECT * FROM ai_jobs WHERE status = 'pending' ORDER BY created_at LIMIT 1").get();
+          const row = this.db.prepare(`SELECT * FROM ai_jobs WHERE status = 'pending'
+            ORDER BY CASE WHEN json_extract(payload, '$.automatic') = 1 THEN 1 ELSE 0 END, created_at LIMIT 1`).get();
           if (!row) break;
           const now = new Date().toISOString();
           const claimed = this.db.prepare("UPDATE ai_jobs SET status = 'running', started_at = ? WHERE id = ? AND status = 'pending'").run(now, row.id);

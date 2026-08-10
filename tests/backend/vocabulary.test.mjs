@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCase } from '../../server/cases.mjs';
-import { createNote, deleteVocabularyEntry } from '../../server/entities.mjs';
+import { createNote, createVocabularyEntry, deleteVocabularyEntry } from '../../server/entities.mjs';
 import { postprocessExtraction } from '../../server/ai/postprocess.mjs';
 import { temporaryDatabase } from './helpers.mjs';
 
@@ -21,6 +21,14 @@ test('ÖVRIGT/OKÄNT cannot be deactivated or deleted', (t) => {
   assert.throws(() => db.prepare("UPDATE begrepp SET name_sv = 'ANNAT' WHERE id = ?").run(fallback.id), /VOCABULARY_FALLBACK_REQUIRED/);
   assert.throws(() => deleteVocabularyEntry(db, fallback.id), /VOCABULARY_FALLBACK_REQUIRED/);
   assert.equal(db.prepare('SELECT text FROM notes WHERE id = ?').get(note.id).text, note.text);
+});
+
+test('a blank SIDC uses the neutral vocabulary symbol', (t) => {
+  const { db } = temporaryDatabase(t);
+  const created = createVocabularyEntry(db, {
+    name_sv: 'TESTBEGREPP', name_en: 'Test term', definition: '', sidc: '   ',
+  });
+  assert.equal(created.sidc, '10031000000000000000');
 });
 
 test('AI output drops invented terms, applies fallback and flags the field', () => {

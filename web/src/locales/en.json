@@ -389,6 +389,7 @@
     "nameEn": "English name",
     "definition": "Definition",
     "sidc": "Symbol code (SIDC)",
+    "sidcHint": "Optional. Leave blank to use a neutral default symbol.",
     "symbol": "Marker",
     "order": "Order",
     "moveUp": "Move up",

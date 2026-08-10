@@ -12,11 +12,10 @@
   "operatorName": "",
   "bannerText": "EJ SEKRETESSKLASSAT – ÖVNING",
   "likelihoodScale": [
-    "mycket osannolikt",
-    "osannolikt",
-    "möjligt",
-    "sannolikt",
-    "mycket sannolikt"
+    "tveksam",
+    "möjligen",
+    "troligen",
+    "sannolik"
   ],
   "backupIntervalMin": 30,
   "backupRetention": 20,
