@@ -6,6 +6,8 @@ Aurora Intel är en lokal underrättelseliggare för strukturerade 7S-observatio
 
 AI:n ger utkast. En officer måste alltid kontrollera varje fält, bedömning och fråga. Aurora hittar inte automatiskt sanningen i en rapport och ersätter inte order, källkritik, säkerhetsskydd eller ordinarie rapporterings-/larmvägar.
 
+> Skärmbilderna i handboken visar endast syntetisk övningsdata. Den lokala modellen är avsiktligt frånkopplad i flera bilder för att visa vilka manuella funktioner som fortfarande fungerar.
+
 ## USB-flöde på en frånkopplad dator
 
 | Steg | macOS | Windows |
@@ -60,6 +62,10 @@ Adressen är fortfarande endast `127.0.0.1`. Aurora kan inte göras tillgänglig
 4. Kontrollera varje förhandsgranskningskort. Fält med osäkerhet är markerade. Jämför med originaltexten, rätta tid/plats/antal/begrepp och kontrollera att rapporter delats korrekt.
 5. Välj **Spara till liggaren** för varje godkänd rapport. Inget AI-resultat sparas utan detta steg.
 
+![Ny rapport med syntetisk 7S-text och manuellt vald källbedömning](assets/guide-report-intake.jpg)
+
+*Originaltext och källbedömning visas tillsammans. Källbedömningen väljs alltid av användaren, aldrig av AI.*
+
 Välj manuell nyregistrering om LLM-status är nere eller om du vill börja med ett tomt formulär. Alla manuella funktioner fungerar utan modellen.
 
 ### Tider och platser
@@ -72,6 +78,10 @@ En angiven MGRS- eller WGS84-position konverteras och valideras lokalt. Ett ortn
 
 AI och gränssnitt får bara använda aktiva värden ur **Begreppslistan**. Om inget passar används `ÖVRIGT/OKÄNT`. Du kan skapa, ordna, definiera och inaktivera begrepp; inaktivering ändrar inte gamla ärenden. `ÖVRIGT/OKÄNT` kan inte tas bort eller inaktiveras.
 
+SIDC är valfritt när ett begrepp skapas. Ett tomt SIDC-fält får automatiskt en neutral standardsymbol.
+
+![Begreppslistan med ett syntetiskt eget begrepp och information om valfri SIDC](assets/guide-vocabulary.jpg)
+
 ## Liggare och karta
 
 Tabellen och kartan visar samma filtrerade urval. Du kan:
@@ -83,19 +93,27 @@ Tabellen och kartan visar samma filtrerade urval. Du kan:
 - stjärnmärka, tagga och redigera enkla fält direkt;
 - öppna detaljpanelen för originaltext, AI-JSON, bedömning och anteckningar.
 
+![Liggare, manuellt väder, karta och samlad bedömningsyta](assets/guide-ledger-map.jpg)
+
+![Ärendeöversikt med källrapportens id, slag, platsnamn och MGRS](assets/guide-case-overview.jpg)
+
 Markera eller håll pekaren över en rad för att markera karttecknet, och klicka ett karttecken för att öppna ärendet. Kartan använder en lokal, schematisk vektorkarta och får inte användas för navigation, gränstolkning, avstånd med operativ precision eller målangivelse. Pekarvisningen anger MGRS och WGS84 samtidigt.
 
 Kartmarkören visar endast den användargranskade aktörsfärgen: gul Okänd, röd Misstänkt främmande, grön Civil eller blå Egen. Det kontrollerade begreppet visas bredvid färgrutan. Färgen bevisar inte identitet eller avsikt.
 
 ## Spaningsfrågor
 
-När liggaren innehåller fler än den inställda tröskeln (standard 3) kan AI föreslå upp till fem spaningsfrågor. Varje förslag visar motivering, prioritet och länkade verkliga ärenden. Kontrollera att frågan är konkret, observerbar, laglig och faktiskt minskar en informationslucka. **Acceptera** gör den Aktiv; du kan redigera, markera Besvarad eller Avförd och skriva anteckningar. Befintliga frågor skickas med för att minska dubbletter.
+När liggaren innehåller fler än den inställda tröskeln (standard 3) kan AI föreslå upp till två fokuserade spaningsfrågor per körning. Varje förslag visar motivering, prioritet och länkade verkliga ärenden. Kontrollera att frågan är konkret, observerbar, laglig och faktiskt minskar en informationslucka. **Acceptera** gör den Aktiv; du kan redigera, markera Besvarad eller Avförd och skriva anteckningar. Befintliga frågor skickas med för att minska dubbletter.
+
+![Aktiva och föreslagna spaningsfrågor med länkade ärenden](assets/guide-collection-questions.jpg)
 
 ## Fråga AI och Bedöm
 
 I **Fråga AI** söker backend först fram högst cirka 40 relevanta rader och modellen får endast dessa. Svaret visar citerade ärenden; klicka en citering för att markera tabellrad och karttecken. Ett kluster/rutt/trend visas bara när bifogade rader stöder det. Ett korrekt svar kan vara att underlaget inte räcker.
 
 **Bedöm** på ett eller flera ärenden returnerar separata fält för FAKTA och BEDÖMNING, ett ord ur den konfigurerade sannolikhetsskalan och motivering. Standardskalan följer R UND 2022: tveksam, möjligen, troligen, sannolik. Kunskapsbanken ger detektionskontext, inte nya fakta. Kontrollera alternativa förklaringar och spara endast efter egen prövning.
+
+![Bedömningsfliken med en sparad bedömning för ett syntetiskt ärende](assets/guide-case-assessment.jpg)
 
 ## LLM-status och modellbyte
 

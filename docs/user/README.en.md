@@ -6,6 +6,8 @@ Aurora Intel is a local intelligence ledger for structured 7S observations. Its 
 
 AI results are drafts. An officer must verify every field, assessment, and collection question. Aurora cannot determine that a report is true and does not replace orders, source evaluation, protective-security rules, or established reporting/emergency channels.
 
+> All screenshots use synthetic exercise data. The interface is shown in Swedish; switching language changes the labels but not the layout. The local model is deliberately stopped in several screenshots to show which manual functions remain available.
+
 ## USB workflow on a disconnected computer
 
 | Step | macOS | Windows |
@@ -59,15 +61,25 @@ This changes ports, never the `127.0.0.1` bind address.
 4. Review each preview card against the original. Correct uncertain time, place, count, type, source, and vocabulary values; verify that multiple events were split correctly.
 5. Select **Save to ledger** on each accepted report. AI output is never committed before this action.
 
+![Report intake with synthetic 7S text and a manually selected source assessment](assets/guide-report-intake.jpg)
+
 Use manual entry when the LLM is unavailable or to start with a blank form. All non-AI functionality remains usable.
 
 Aurora preserves original time/place strings. Relative times are marked uncertain. A supplied MGRS or WGS84 position is converted locally; a place name is not silently turned into an exact coordinate. Reports without a validated point remain valid and show **⚑ Position missing**. Use **Add position** to supply MGRS or latitude/longitude and review both formats.
 
 The active **Vocabulary** is the only source for `begrepp`. If no item fits, use `ÖVRIGT/OKÄNT`. Deactivating an item preserves historical cases; the fallback cannot be deleted/deactivated.
 
+SIDC is optional when creating a vocabulary term. Leaving it blank assigns the neutral default symbol.
+
+![Vocabulary editor with a synthetic custom term and the optional SIDC hint](assets/guide-vocabulary.jpg)
+
 ## Ledger and map
 
 The table and map share the same filtered selection. Search includes the raw report. Filter by date, vocabulary, status, tags, star, actor, missing position, or current map extent; group by vocabulary, status, day, tag, or 10 km MGRS square. Open a case for original text, validated AI JSON, assessment, and notes.
+
+![Ledger, manual weather, map, and assessment area](assets/guide-ledger-map.jpg)
+
+![Case overview with source report ID, reported type, place name, and MGRS](assets/guide-case-overview.jpg)
 
 Row selection highlights the corresponding marker and marker clicks open cases. The local map is schematic: do not use it for navigation, boundary adjudication, operationally precise distance, or targeting. Cursor output shows MGRS and WGS84 together.
 
@@ -75,11 +87,15 @@ Map markers use only the user-reviewed actor colour: yellow Unknown, red Suspect
 
 ## Collection questions, Q&A, and assessments
 
-Above the configured case threshold (default: more than 3), AI can propose up to five collection questions grounded in real linked case IDs. Review whether each question is concrete, observable, lawful, and closes a real gap. Accept to make it Active, edit it, mark it Answered/Dismissed, and attach notes.
+Above the configured case threshold (default: more than 3), AI can propose up to two focused collection questions per run, grounded in real linked case IDs. Review whether each question is concrete, observable, lawful, and closes a real gap. Accept to make it Active, edit it, mark it Answered/Dismissed, and attach notes.
+
+![Active and proposed collection questions linked to synthetic cases](assets/guide-collection-questions.jpg)
 
 For **Ask AI**, the backend retrieves at most about 40 candidate rows. The answer can only rely on those rows and lists exact cited IDs; click a citation to highlight table/map. If evidence is insufficient, the correct response says so. Pattern overlays require supporting rows and do not imply causation.
 
 **Assess** separates FAKTA from BEDÖMNING, uses the configured likelihood scale, and should test alternative explanations. The default follows R UND 2022: tveksam, möjligen, troligen, sannolik. Knowledge files supply detection context, never additional event facts. Store a result only after human review.
+
+![Assessment tab showing a stored draft for a synthetic case](assets/guide-case-assessment.jpg)
 
 ## LLM status and model changes
 
