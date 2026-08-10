@@ -357,7 +357,7 @@ export function App() {
     <div className="app-shell">
       <div className="classification-banner"><span className="banner-mark" aria-hidden="true" />{settings.bannerText || t('app.classification')}<span className="banner-local"><i />{t('app.localOnly')}</span></div>
       <header className="topbar">
-        <button className="wordmark" type="button" onClick={() => { setFilters(DEFAULT_FILTERS); setSelectedId(null); }}><img src="/assets/brand/aurora-mark.png" alt="" /><span><strong>AURORA</strong><small>INTELLIGENCE LEDGER</small></span></button>
+        <button className="wordmark" type="button" onClick={() => { setFilters(DEFAULT_FILTERS); setSelectedId(null); }}><img src="/assets/brand/aurora-mark.svg" alt="" /><span><strong>AURORA</strong><small>INTELLIGENCE LEDGER</small></span></button>
         <label className="global-search"><span className="global-search-label">{t('header.searchLabel')}</span><input ref={searchRef} value={filters.query} onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))} placeholder={t('header.searchPlaceholder')} aria-label={t('header.searchLabel')} />{searchPending && <i className="search-progress" role="status" title={t('header.searching')} />}{filters.query && <button type="button" aria-label={t('intake.clear')} onClick={() => setFilters((current) => ({ ...current, query: '' }))}>×</button>}</label>
         <div className="topbar-actions">
           <button className={`llm-status status-${llm.status}`} type="button" title={llm.detail ?? t(`llm.${llm.status}`)} onClick={() => setDialog('settings')}><i /><span><small>{t('llm.label')}</small><strong>{t(`llm.${llm.status}`)}</strong></span></button>
