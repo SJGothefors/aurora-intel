@@ -249,4 +249,4 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 export type PanelTab = 'intake' | 'ask' | 'questions';
-export type AppDialog = 'settings' | 'vocabulary' | 'importExport' | 'shortcuts' | null;
+export type AppDialog = 'settings' | 'vocabulary' | 'importExport' | 'shortcuts' | 'help' | null;

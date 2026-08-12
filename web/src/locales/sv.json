@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "AURORA INTEL",
-    "subtitle": "Underrättelseliggare",
+    "subtitle": "ad eius informationem",
     "classification": "EJ SEKRETESSKLASSAT – ÖVNING",
     "localOnly": "Endast lokal anslutning",
     "loading": "Laddar liggaren…",
@@ -35,6 +35,7 @@
     "vocabulary": "Begreppslista",
     "importExport": "Import / export",
     "shortcuts": "Kortkommandon",
+    "help": "Hjälp och dokumentation",
     "toggleLanguage": "Byt till engelska",
     "toggleTheme": "Växla tema",
     "toggleDensity": "Växla täthet",

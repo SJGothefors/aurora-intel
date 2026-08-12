@@ -22,8 +22,8 @@ export function SettingsDialog({ open, settings, models, llm, onClose, onSave, o
   const [wipePhrase, setWipePhrase] = useState('');
   useEffect(() => { if (open) { setDraft(settings); setWipeStep(0); setWipePhrase(''); } }, [open, settings]);
   const expectedPhrase = draft.lang === 'en' ? 'CLEAR' : 'RENSA';
-  const save = async () => { setBusy(true); try { await onSave(draft); onClose(); } finally { setBusy(false); } };
-  const wipe = async () => { if (wipePhrase !== expectedPhrase) return; setBusy(true); try { await onWipe(wipePhrase); setWipeStep(0); setWipePhrase(''); onClose(); } finally { setBusy(false); } };
+  const save = async () => { setBusy(true); try { await onSave(draft); onClose(); } catch { /* The parent reports the error and the dialog remains open. */ } finally { setBusy(false); } };
+  const wipe = async () => { if (wipePhrase !== expectedPhrase) return; setBusy(true); try { await onWipe(wipePhrase); setWipeStep(0); setWipePhrase(''); onClose(); } catch { /* The parent reports the error and preserves the data. */ } finally { setBusy(false); } };
   const patch = (value: Partial<Settings>) => setDraft((current) => ({ ...current, ...value }));
   return (
     <Modal open={open} wide eyebrow={t('settings.eyebrow')} title={t('settings.title')} onClose={onClose} footer={<><button className="quiet-button" type="button" onClick={onClose}>{t('app.cancel')}</button><button className="primary-button" type="button" disabled={busy} onClick={() => void save()}>{busy && <span className="spinner" />}{t('settings.save')}</button></>}>

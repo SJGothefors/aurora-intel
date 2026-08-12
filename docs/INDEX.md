@@ -2,6 +2,8 @@
 
 Aurora Intel `0.1.0-alpha` is a local, offline-first intelligence ledger. Choose the documentation for your role:
 
+The same essential guidance is available inside the running application from **Help and documentation** in the top bar, split into user and technical/admin views.
+
 | Page | Use it for |
 |---|---|
 | [User documentation](user/INDEX.md) | Start/stop, 7S intake, source assessment, ledger, weather, map and automated assessment |

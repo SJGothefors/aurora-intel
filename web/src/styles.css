@@ -214,6 +214,14 @@ pre,
   background: var(--accent);
 }
 
+.banner-version {
+  position: absolute;
+  left: 14px;
+  color: #b08d99;
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
 .banner-local {
   position: absolute;
   right: 14px;
@@ -255,10 +263,19 @@ pre,
   text-align: left;
 }
 
-.wordmark > img {
+.aurora-mark {
+  display: grid;
   width: 34px;
   height: 34px;
-  object-fit: contain;
+  flex: 0 0 34px;
+  place-items: center;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+  transform: rotate(180deg);
 }
 
 .wordmark > span:last-child {
@@ -280,11 +297,50 @@ pre,
 .wordmark small {
   margin-top: 3px;
   color: var(--muted);
-  font-family: "IBM Plex Sans", sans-serif;
-  font-size: 9px;
-  letter-spacing: 0.105em;
-  text-transform: uppercase;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 10px;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  text-transform: none;
 }
+
+.help-layout {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  min-height: 480px;
+}
+
+.help-audience {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 16px;
+  border-right: 1px solid var(--line);
+}
+
+.help-audience button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 11px;
+  border: 1px solid transparent;
+  color: var(--muted);
+  background: transparent;
+  font-size: 11px;
+  text-align: left;
+}
+
+.help-audience button span { color: var(--accent); font-size: 15px; }
+.help-audience button:hover { color: var(--text); background: var(--panel-2); }
+.help-audience button.is-active { border-color: var(--line-strong); color: var(--text); background: var(--bg-raised); box-shadow: inset 2px 0 var(--accent); }
+
+.help-article { min-width: 0; padding-left: 20px; }
+.help-intro { margin: 0 0 17px; color: var(--text-soft); font-size: 12px; line-height: 1.65; }
+.help-sections { display: grid; gap: 8px; }
+.help-sections section { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; padding: 12px; border: 1px solid var(--line); background: var(--bg-raised); }
+.help-sections section > span { color: var(--accent); font: 10px "IBM Plex Mono", monospace; }
+.help-sections h3 { margin: 0 0 5px; color: var(--text); font-size: 13px; }
+.help-sections p { margin: 0; color: var(--text-soft); font-size: 11px; line-height: 1.6; }
 
 .global-search {
   position: relative;

@@ -19,7 +19,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $root 'assets\model\Mistral-7B-Instr
 $defaults = Get-Content -LiteralPath (Join-Path $root 'config\app.defaults.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 $version = $defaults.appVersion
 if ([string]::IsNullOrWhiteSpace($version)) { Stop-Aurora 'appVersion saknas. / appVersion is missing.' }
-$releaseRoot = Join-Path $root 'release'
+$releaseRoot = Join-Path $root 'applicationExportFolder'
 $artifactCache = Join-Path $root '.cache\release-artifacts'
 New-Item -ItemType Directory -Path $releaseRoot,$artifactCache -Force | Out-Null
 $work = Join-Path $releaseRoot ('.prepare.' + [guid]::NewGuid().ToString('N'))
@@ -141,6 +141,8 @@ self-test. Extract the whole folder, run build.bat, then start.bat.
         & $toolNode (Join-Path $final 'scripts\release-signature.mjs') sign $archive $archiveSha $signingKey "$archive.sig.json" "$archive.pub.pem"
         if ($LASTEXITCODE -ne 0) { Stop-Aurora 'Fristående releasesignering misslyckades. / Detached release signing failed.' }
     }
+    & $toolNode (Join-Path $final 'scripts\verify-release-output.mjs') $releaseRoot $version
+    if ($LASTEXITCODE -ne 0) { Stop-Aurora 'Releaseutdata kunde inte verifieras. / Release output verification failed.' }
     Write-AuroraInfo "OK — Offlinepaket: $final"
     Write-AuroraInfo "ZIP: $archive"
     Write-AuroraInfo 'Kopiera ZIP-filen (eller hela releasemappen) till USB. / Copy the ZIP (or full release folder) to USB.'

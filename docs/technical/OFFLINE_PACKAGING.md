@@ -70,12 +70,12 @@ The script:
 7. removes staging `node_modules`, since the target reconstructs production modules from the offline store;
 8. writes `docs/release/aurora-intel.cdx.json`, a CycloneDX 1.5 inventory derived offline from the exact package lock plus every pinned Node/llama/model lock entry, including hashes, platform, destination, and actual staged size;
 9. writes `checksums.txt` covering every immutable release file (including the SBOM) and rejects symlinks/hard links;
-10. emits `release/aurora-intel-v<version>-offline/`, the equivalent `.zip`, and an outer `release/checksums.txt` containing the final transport ZIP's streaming SHA-256;
+10. emits `applicationExportFolder/aurora-intel-v<version>-offline/`, the equivalent `.zip`, and an outer `applicationExportFolder/checksums.txt` containing the final transport ZIP's streaming SHA-256;
 11. when a user-supplied Ed25519 key was requested, re-hashes the unchanged ZIP and emits `.zip.sig.json` plus the derived `.zip.pub.pem` without ever copying the private key.
 
 The ZIP central directory is normalized after creation: directories use mode `0755`, ordinary files `0644`, and Unix launchers/scripts `0755`. This preserves double-clickable macOS `.command` files even when the release was prepared on Windows and later extracted on a Mac.
 
-There are deliberately two checksum levels: the outer `release/checksums.txt` verifies the ZIP during transfer, while the inner release-folder `checksums.txt` is the per-file manifest that offline `build` verifies before changing installed state.
+There are deliberately two checksum levels: the outer `applicationExportFolder/checksums.txt` verifies the ZIP during transfer, while the inner release-folder `checksums.txt` is the per-file manifest that offline `build` verifies before changing installed state. The export script also checks that the ZIP contains the required launchers and manifests before reporting success.
 
 The ZIP is never modified after its outer digest is computed. A checksum shipped beside the package detects accidental corruption but **does not authenticate origin**: an adversary who replaces the ZIP can replace that text file too. Military/controlled distribution therefore requires an organization-owned trust anchor, release process, and detached signature whose public-key fingerprint is confirmed through an independent approved channel. Aurora can create an optional Ed25519-over-SHA256 sidecar with a user-supplied key, but supplies no private key and claims no organizational approval or certification. The emitted public key is convenient input, not trust by itself; compare its SHA-256 fingerprint out of band before verification.
 

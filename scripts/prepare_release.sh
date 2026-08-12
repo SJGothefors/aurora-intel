@@ -22,7 +22,7 @@ case "$platform" in macos-arm64|macos-x64) ;; *) aurora_die "Använd prepare_rel
 
 release_version=$(sed -n 's/.*"appVersion"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$AURORA_ROOT/config/app.defaults.json" | head -n 1)
 [ -n "$release_version" ] || aurora_die "appVersion saknas i config/app.defaults.json. / appVersion is missing."
-release_root="$AURORA_ROOT/release"
+release_root="$AURORA_ROOT/applicationExportFolder"
 artifact_cache="$AURORA_ROOT/.cache/release-artifacts"
 mkdir -p "$release_root" "$artifact_cache"
 work=$(mktemp -d "$release_root/.prepare.XXXXXX")
@@ -137,6 +137,7 @@ printf '%s  %s\n' "$archive_sha" "$(basename "$archive")" > "$release_root/check
 if [ -n "$signing_key" ]; then
   "$tool_node" "$final/scripts/release-signature.mjs" sign "$archive" "$archive_sha" "$signing_key" "$archive.sig.json" "$archive.pub.pem"
 fi
+"$tool_node" "$final/scripts/verify-release-output.mjs" "$release_root" "$release_version"
 trap - EXIT HUP INT TERM
 rm -rf -- "$work"
 aurora_info "OK — Offlinepaket: $final"

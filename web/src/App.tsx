@@ -36,8 +36,11 @@ import { VocabularyDialog } from './features/settings/VocabularyDialog';
 import { Modal } from './components/common/Modal';
 import { FiltersBar } from './components/navigation/FiltersBar';
 import { ShortcutsDialog } from './components/navigation/ShortcutsDialog';
+import { HelpDialog } from './components/navigation/HelpDialog';
+import appDefaults from '../../config/app.defaults.json';
 
 type Bounds = { north: number; south: number; east: number; west: number };
+const APP_VERSION = `v ${appDefaults.appVersion.replace(/-([^-]+)$/, ' - $1')}`;
 
 function asArray(value: unknown): string[] {
   if (Array.isArray(value)) return value.map(String);
@@ -283,17 +286,32 @@ export function App() {
     } catch (error) { reportError(describeError(error)); throw error; }
   };
   const wipe = async (phrase: string) => {
-    triggerExport('xlsx', 'all', ';');
+    await triggerExport('xlsx', 'all', ';');
     await api.wipe(phrase);
     setCases([]); setQuestions([]); setSelectedId(null); setSelectedIds(new Set());
     setSearchEpoch((value) => value + 1);
   };
-  const triggerExport = (format: 'xlsx' | 'csv', scope: 'all' | 'filtered', separator: ';' | ',') => {
-    const anchor = document.createElement('a');
-    anchor.href = api.exportUrl(format, scope === 'filtered' ? filteredCases.map((item) => item.id) : undefined, separator);
-    anchor.download = '';
-    document.body.appendChild(anchor); anchor.click(); anchor.remove();
-    notify(t('toast.exportStarted'));
+  const triggerExport = async (format: 'xlsx' | 'csv', scope: 'all' | 'filtered', separator: ';' | ',') => {
+    try {
+      const response = await fetch(api.exportUrl(format, scope === 'filtered' ? filteredCases.map((item) => item.id) : undefined, separator), { headers: { Accept: 'application/octet-stream' } });
+      if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
+      const blob = await response.blob();
+      if (!blob.size) throw new Error('The export was empty.');
+      const disposition = response.headers.get('content-disposition') ?? '';
+      const encodedName = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+      const plainName = disposition.match(/filename="?([^";]+)"?/i)?.[1];
+      const filename = encodedName ? decodeURIComponent(encodedName) : plainName ?? `aurora-export.${format}`;
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor); anchor.click(); anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      notify(t('toast.exportStarted'));
+    } catch (error) {
+      reportError(describeError(error));
+      throw error;
+    }
   };
   const previewImport = async (file: File, mapping?: Record<string, string>): Promise<ImportPreview> => {
     try { return await api.previewImport(file, mapping); } catch (error) { reportError(describeError(error)); throw error; }
@@ -355,15 +373,16 @@ export function App() {
 
   return (
     <div className="app-shell">
-      <div className="classification-banner"><span className="banner-mark" aria-hidden="true" />{settings.bannerText || t('app.classification')}<span className="banner-local"><i />{t('app.localOnly')}</span></div>
+      <div className="classification-banner"><span className="banner-version">{APP_VERSION}</span><span className="banner-mark" aria-hidden="true" />{settings.bannerText || t('app.classification')}<span className="banner-local"><i />{t('app.localOnly')}</span></div>
       <header className="topbar">
-        <button className="wordmark" type="button" onClick={() => { setFilters(DEFAULT_FILTERS); setSelectedId(null); }}><img src="/assets/brand/aurora-mark.svg" alt="" /><span><strong>AURORA</strong><small>INTELLIGENCE LEDGER</small></span></button>
+        <button className="wordmark" type="button" onClick={() => { setFilters(DEFAULT_FILTERS); setSelectedId(null); }}><span className="aurora-mark" aria-hidden="true">V</span><span><strong>AURORA</strong><small>ad eius informationem</small></span></button>
         <label className="global-search"><span className="global-search-label">{t('header.searchLabel')}</span><input ref={searchRef} value={filters.query} onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))} placeholder={t('header.searchPlaceholder')} aria-label={t('header.searchLabel')} />{searchPending && <i className="search-progress" role="status" title={t('header.searching')} />}{filters.query && <button type="button" aria-label={t('intake.clear')} onClick={() => setFilters((current) => ({ ...current, query: '' }))}>×</button>}</label>
         <div className="topbar-actions">
           <button className={`llm-status status-${llm.status}`} type="button" title={llm.detail ?? t(`llm.${llm.status}`)} onClick={() => setDialog('settings')}><i /><span><small>{t('llm.label')}</small><strong>{t(`llm.${llm.status}`)}</strong></span></button>
           <button className="new-case-button" type="button" onClick={openIntake}><span aria-hidden="true">＋</span>{t('header.newCase')}<kbd>N</kbd></button>
           <button className="icon-button top-icon" type="button" title={t('header.importExport')} aria-label={t('header.importExport')} onClick={() => setDialog('importExport')}><span aria-hidden="true">⇅</span></button>
           <button className="icon-button top-icon" type="button" title={t('header.vocabulary')} aria-label={t('header.vocabulary')} onClick={() => setDialog('vocabulary')}><span aria-hidden="true">≣</span></button>
+          <button className="icon-button top-icon" type="button" title={t('header.help')} aria-label={t('header.help')} onClick={() => setDialog('help')}><span aria-hidden="true">?</span></button>
           <button className="language-button" type="button" title={t('header.toggleLanguage')} aria-label={t('header.toggleLanguage')} onClick={() => void saveSettings({ ...settings, lang: settings.lang === 'sv' ? 'en' : 'sv' })}>{settings.lang.toUpperCase()}</button>
           <button className="icon-button top-icon" type="button" title={t('header.settings')} aria-label={t('header.settings')} onClick={() => setDialog('settings')}><span aria-hidden="true">⚙</span></button>
         </div>
@@ -426,6 +445,7 @@ export function App() {
       <VocabularyDialog open={dialog === 'vocabulary'} terms={vocabulary} onClose={() => setDialog(null)} onCreate={createTerm} onUpdate={updateTerm} onDelete={deleteTerm} onImport={importTerms} exportUrl={api.exportVocabularyUrl()} onNotify={notify} onError={reportError} />
       <TransferDialog open={dialog === 'importExport'} filteredCount={filteredCases.length} totalCount={cases.length} onClose={() => setDialog(null)} onExport={triggerExport} onPreview={previewImport} onApply={applyImport} />
       <ShortcutsDialog open={dialog === 'shortcuts'} onClose={() => setDialog(null)} />
+      <HelpDialog open={dialog === 'help'} onClose={() => setDialog(null)} />
       <Modal
         open={Boolean(bulkAssessment) || bulkAssessing}
         eyebrow={t('detail.assessment')}

@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "AURORA INTEL",
-    "subtitle": "Intelligence ledger",
+    "subtitle": "ad eius informationem",
     "classification": "UNCLASSIFIED – EXERCISE",
     "localOnly": "Local connection only",
     "loading": "Loading the ledger…",
@@ -35,6 +35,7 @@
     "vocabulary": "Vocabulary",
     "importExport": "Import / export",
     "shortcuts": "Keyboard shortcuts",
+    "help": "Help and documentation",
     "toggleLanguage": "Switch to Swedish",
     "toggleTheme": "Toggle theme",
     "toggleDensity": "Toggle density",

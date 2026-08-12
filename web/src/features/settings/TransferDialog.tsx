@@ -8,7 +8,7 @@ interface TransferDialogProps {
   filteredCount: number;
   totalCount: number;
   onClose: () => void;
-  onExport: (format: 'xlsx' | 'csv', scope: 'all' | 'filtered', separator: ';' | ',') => void;
+  onExport: (format: 'xlsx' | 'csv', scope: 'all' | 'filtered', separator: ';' | ',') => Promise<void>;
   onPreview: (file: File, mapping?: Record<string, string>) => Promise<ImportPreview>;
   onApply: (token: string, mode: ImportMode, mapping: Record<string, string>) => Promise<ImportApplyResult>;
 }
@@ -52,8 +52,9 @@ export function TransferDialog({ open, filteredCount, totalCount, onClose, onExp
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [mappingDirty, setMappingDirty] = useState(false);
-  const [busy, setBusy] = useState<'preview' | 'apply' | null>(null);
+  const [busy, setBusy] = useState<'export' | 'preview' | 'apply' | null>(null);
   const [result, setResult] = useState<ImportApplyResult | null>(null);
+  const [exportError, setExportError] = useState('');
   const [localError, setLocalError] = useState('');
 
   useEffect(() => {
@@ -63,6 +64,7 @@ export function TransferDialog({ open, filteredCount, totalCount, onClose, onExp
     setMapping({});
     setMappingDirty(false);
     setResult(null);
+    setExportError('');
     setLocalError('');
     setBusy(null);
   }, [open]);
@@ -132,6 +134,18 @@ export function TransferDialog({ open, filteredCount, totalCount, onClose, onExp
     }
   };
 
+  const runExport = async () => {
+    setBusy('export');
+    setExportError('');
+    try {
+      await onExport(format, scope, separator);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <Modal open={open} wide eyebrow={t('transfer.eyebrow')} title={t('transfer.title')} onClose={onClose}>
       <div className="transfer-grid">
@@ -140,7 +154,8 @@ export function TransferDialog({ open, filteredCount, totalCount, onClose, onExp
           <label><span>{t('transfer.scope')}</span><div className="segmented-control"><button type="button" className={scope === 'all' ? 'is-active' : ''} onClick={() => setScope('all')}>{t('transfer.all')} <small>{totalCount}</small></button><button type="button" className={scope === 'filtered' ? 'is-active' : ''} onClick={() => setScope('filtered')}>{t('transfer.filtered')} <small>{filteredCount}</small></button></div></label>
           <label><span>{t('transfer.format')}</span><div className="segmented-control"><button type="button" className={format === 'xlsx' ? 'is-active' : ''} onClick={() => setFormat('xlsx')}>.XLSX</button><button type="button" className={format === 'csv' ? 'is-active' : ''} onClick={() => setFormat('csv')}>.CSV</button></div></label>
           {format === 'csv' && <label><span>{t('transfer.separator')}</span><select value={separator} onChange={(event) => setSeparator(event.target.value as ';' | ',')}><option value=";">{t('transfer.semicolon')}</option><option value=",">{t('transfer.comma')}</option></select></label>}
-          <button className="primary-button" type="button" onClick={() => onExport(format, scope, separator)}>{t('transfer.download')}</button>
+          <button className="primary-button" type="button" disabled={busy !== null} onClick={() => void runExport()}>{busy === 'export' && <span className="spinner" />}{t('transfer.download')}</button>
+          {exportError && <div className="import-issue-list is-error"><strong>{t('transfer.errors')}</strong><p>{exportError}</p></div>}
         </section>
 
         <section className="transfer-card import-card">
