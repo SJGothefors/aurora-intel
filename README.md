@@ -1,4 +1,8 @@
-# Aurora Intel
+<p align="center">
+  <img src="web/public/assets/brand/aurora-mark.svg" width="152" alt="Aurora Intel logo">
+</p>
+
+<h1 align="center">Aurora Intel</h1>
 
 Aurora Intel is an offline-first intelligence ledger for reviewing and structuring Swedish 7S observation reports. The application, map, data store, and optional local language model all run on `127.0.0.1`; no cloud service is used at runtime.
 
@@ -25,3 +29,9 @@ Press `Ctrl+C` in either development mode to stop every process started by that 
 The offline release commands are intentionally separate from npm development. On a disconnected target, use `build.command`/`build.bat`, then `start.command`/`start.bat`; do not run npm or download dependencies there.
 
 The running application also contains bilingual **Help and documentation** in the top bar, separated into operator and technical/admin guidance.
+
+## Documentation preview
+
+![Aurora Intel ledger, offline map, and assessment workspace using synthetic exercise data](docs/user/assets/guide-ledger-map.jpg)
+
+*The preview uses synthetic exercise data.*
